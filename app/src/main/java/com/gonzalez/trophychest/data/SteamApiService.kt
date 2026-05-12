@@ -1,0 +1,86 @@
+package com.gonzalez.trophychest.data
+
+import retrofit2.http.GET
+import retrofit2.http.Path
+import retrofit2.http.Query
+
+interface SteamApiService {
+    @GET("IPlayerService/GetOwnedGames/v0001/")
+    suspend fun getOwnedGames(
+        @Query("key") apiKey: String,
+        @Query("steamid") steamId: String,
+        @Query("format") format: String = "json",
+        @Query("include_appinfo") includeAppInfo: Int = 1,
+        @Query("include_played_free_games") includePlayedFreeGames: Int = 1
+    ): SteamOwnedGamesResponse
+
+    @GET("ISteamUser/ResolveVanityURL/v1/")
+    suspend fun resolveVanityUrl(
+        @Query("key") apiKey: String,
+        @Query("vanityurl") vanityUrl: String,
+        @Query("format") format: String = "json"
+    ): ResolveVanityUrlResponse
+
+    @GET("ISteamUser/GetPlayerSummaries/v0002/")
+    suspend fun getPlayerSummaries(
+        @Query("key") apiKey: String,
+        @Query("steamids") steamIds: String
+    ): PlayerSummariesResponse
+
+    @GET("ISteamUserStats/GetPlayerAchievements/v0001/")
+    suspend fun getPlayerAchievements(
+        @Query("key") apiKey: String,
+        @Query("steamid") steamId: String,
+        @Query("appid") appId: Int,
+        @Query("l") language: String = "spanish"
+    ): PlayerAchievementsResponse
+
+    @GET("ISteamUserStats/GetSchemaForGame/v2/")
+    suspend fun getSchemaForGame(
+        @Query("key") apiKey: String,
+        @Query("appid") appId: Int,
+        @Query("l") language: String = "spanish"
+    ): SchemaForGameResponse
+
+    @GET("ISteamUserStats/GetGlobalAchievementPercentagesForApp/v0002/")
+    suspend fun getGlobalAchievementPercentages(
+        @Query("gameid") appId: Int,
+        @Query("format") format: String = "json"
+    ): GlobalAchievementPercentagesResponse
+}
+
+interface SteamStoreApiService {
+    @GET("api/appdetails")
+    suspend fun getAppDetails(
+        @Query("appids") appIds: String,
+        @Query("l") language: String = "spanish",
+        @Query("cc") countryCode: String = "ES"
+    ): Map<String, SteamStoreAppDetailsEnvelope>
+
+    @GET("api/featuredcategories")
+    suspend fun getFeaturedCategories(
+        @Query("cc") countryCode: String = "ES",
+        @Query("l") language: String = "spanish"
+    ): SteamFeaturedCategoriesResponse
+
+    @GET("search/results/")
+    suspend fun searchByTag(
+        @Query("tags") tagId: Int,
+        @Query("category1") category: Int = 998,
+        @Query("filter") filter: String = "topsellers",
+        @Query("start") start: Int = 0,
+        @Query("count") count: Int = 30,
+        @Query("infinite") infinite: Int = 1,
+        @Query("cc") countryCode: String = "ES",
+        @Query("l") language: String = "spanish"
+    ): SteamSearchResultsResponse
+
+    @GET("appreviews/{appId}")
+    suspend fun getAppReviewSummary(
+        @Path("appId") appId: Int,
+        @Query("json") json: Int = 1,
+        @Query("filter") filter: String = "summary",
+        @Query("language") language: String = "all",
+        @Query("purchase_type") purchaseType: String = "all"
+    ): SteamAppReviewsResponse
+}

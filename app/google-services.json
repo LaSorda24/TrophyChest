@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "525933947012",
+    "project_id": "trophychest-2c61e",
+    "storage_bucket": "trophychest-2c61e.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:525933947012:android:a52898a32fa42ad75ebad1",
+        "android_client_info": {
+          "package_name": "com.gonzalez.trophychest"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "525933947012-2ec5dhe4lo09huq81miv0i0qr38skm2k.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.gonzalez.trophychest",
+            "certificate_hash": "dff11552d4f26e91882024367527549f3b8b71e0"
+          }
+        },
+        {
+          "client_id": "525933947012-e97jjnqenfr07ohcgef5c8eo6gmdoiuu.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBj-yTp6Ou5leQ-jEatWnWhij97Z8foSWg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "525933947012-e97jjnqenfr07ohcgef5c8eo6gmdoiuu.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

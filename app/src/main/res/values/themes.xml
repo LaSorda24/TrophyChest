@@ -1,5 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <style name="Theme.App.Starting" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">#161618</item>
+        <item name="windowSplashScreenAnimatedIcon">@android:color/transparent</item>
+        <item name="postSplashScreenTheme">@style/Theme.TrophyChest</item>
+    </style>
 
-    <style name="Theme.TrophyChest" parent="android:Theme.Material.Light.NoActionBar" />
+    <style name="Theme.TrophyChest" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="windowActionBar">false</item>
+        <item name="windowNoTitle">true</item>
+
+        <item name="android:windowBackground">#0F1721</item>
+        <item name="android:statusBarColor">#0F1721</item>
+    </style>
 </resources>

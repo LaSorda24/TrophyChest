@@ -1,5 +1,7 @@
 *.iml
 .gradle
+.gradle-user-home/
+.kotlin/
 /local.properties
 /.idea/caches
 /.idea/libraries
@@ -13,3 +15,15 @@
 .externalNativeBuild
 .cxx
 local.properties
+.aider*
+
+# Local backend dependencies and secrets
+node_modules/
+**/node_modules/
+.env
+.env.*
+.env*
+.dev.vars
+.dev.vars.*
+igdb-proxy/.dev.vars
+igdb-proxy/.env*

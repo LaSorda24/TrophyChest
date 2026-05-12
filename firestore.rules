@@ -1,0 +1,140 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // APUNTE: TODAS LAS REGLAS PARTEN DE SABER SI HAY USUARIO AUTENTICADO.
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isSelf(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    function isConnectionMember() {
+      return signedIn() && request.auth.uid in resource.data.members;
+    }
+
+    function isNewConnectionMember() {
+      return signedIn() && request.auth.uid in request.resource.data.members;
+    }
+
+    function isConnectionIdParticipant(connectionId) {
+      return signedIn() && connectionId.split("_").hasAny([request.auth.uid]);
+    }
+
+    function hasExpectedConnectionId(connectionId) {
+      return connectionId == request.resource.data.members.join("_");
+    }
+
+    // APUNTE: CADA USUARIO SOLO PUEDE MODIFICAR SU PROPIO PERFIL PUBLICO.
+    match /users/{uid} {
+      allow read: if signedIn();
+      allow create: if isSelf(uid)
+        && request.resource.data.uid == uid;
+      allow update: if isSelf(uid)
+        && request.resource.data.uid == resource.data.uid
+        && (
+          request.resource.data.friendCode == resource.data.friendCode
+          || (!resource.data.keys().hasAny(["friendCode"]) && request.resource.data.friendCode is string)
+        )
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          "username",
+          "usernameLower",
+          "lastNameChange",
+          "profileImageId",
+          "bannerImageId",
+          "friendCode",
+          "savedGames",
+          "displayName",
+          "photoUrl",
+          "createdAt"
+        ]);
+      allow delete: if false;
+    }
+
+    // APUNTE: USERNAMES Y FRIENDCODES SON RESERVAS UNICAS PARA BUSCAR AMIGOS.
+    match /usernames/{username} {
+      allow read: if signedIn();
+      allow create: if signedIn()
+        && !exists(/databases/$(database)/documents/usernames/$(username))
+        && request.resource.data.uid == request.auth.uid;
+      allow update, delete: if false;
+    }
+
+    match /friendCodes/{friendCode} {
+      allow read: if signedIn();
+      allow create: if signedIn()
+        && !exists(/databases/$(database)/documents/friendCodes/$(friendCode))
+        && request.resource.data.uid == request.auth.uid;
+      allow update, delete: if false;
+    }
+
+    // APUNTE: CONNECTIONS GUARDA SOLICITUDES, AMISTADES Y RESUMEN DEL ULTIMO MENSAJE.
+    match /connections/{connectionId} {
+      allow get: if isConnectionIdParticipant(connectionId) || isConnectionMember();
+      allow list: if isConnectionMember();
+
+      allow create: if signedIn()
+        && isNewConnectionMember()
+        && request.resource.data.members is list
+        && request.resource.data.members.size() == 2
+        && hasExpectedConnectionId(connectionId)
+        && request.resource.data.requestedBy == request.auth.uid
+        && request.resource.data.requestedTo in request.resource.data.members
+        && request.resource.data.requestedTo != request.auth.uid
+        && request.resource.data.status == "pending";
+
+      allow update: if isConnectionMember() && (
+        (
+          resource.data.status == "pending"
+          && resource.data.requestedTo == request.auth.uid
+          && request.resource.data.status in ["accepted", "rejected"]
+          && request.resource.data.members == resource.data.members
+          && request.resource.data.requestedBy == resource.data.requestedBy
+          && request.resource.data.requestedTo == resource.data.requestedTo
+        )
+        ||
+        (
+          resource.data.status == "accepted"
+          && request.resource.data.status == "accepted"
+          && request.resource.data.members == resource.data.members
+          && request.resource.data.requestedBy == resource.data.requestedBy
+          && request.resource.data.requestedTo == resource.data.requestedTo
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["readAtByUid"])
+        )
+        ||
+        (
+          resource.data.status == "accepted"
+          && request.resource.data.status == "accepted"
+          && request.resource.data.members == resource.data.members
+          && request.resource.data.requestedBy == resource.data.requestedBy
+          && request.resource.data.requestedTo == resource.data.requestedTo
+          && request.resource.data.lastSenderId == request.auth.uid
+          && request.resource.data.lastMessageText is string
+          && request.resource.data.lastMessageText.size() > 0
+          && request.resource.data.lastMessageText.size() <= 1000
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["lastMessageText", "lastMessageAt", "lastSenderId", "readAtByUid"])
+        )
+      );
+
+      allow delete: if false;
+
+      match /messages/{messageId} {
+        // APUNTE: LOS MENSAJES SOLO LOS LEEN Y CREAN MIEMBROS DE UNA AMISTAD ACEPTADA.
+        allow read: if signedIn()
+          && request.auth.uid in get(/databases/$(database)/documents/connections/$(connectionId)).data.members;
+
+        allow create: if signedIn()
+          && request.auth.uid in get(/databases/$(database)/documents/connections/$(connectionId)).data.members
+          && get(/databases/$(database)/documents/connections/$(connectionId)).data.status == "accepted"
+          && request.resource.data.senderId == request.auth.uid
+          && request.resource.data.text is string
+          && request.resource.data.text.size() > 0
+          && request.resource.data.text.size() <= 1000;
+
+        allow update, delete: if false;
+      }
+    }
+  }
+}
