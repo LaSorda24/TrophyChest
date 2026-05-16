@@ -18,17 +18,17 @@ import com.gonzalez.trophychest.R
 import com.gonzalez.trophychest.navigation.Screen
 import com.gonzalez.trophychest.ui.theme.ReadableTertiary
 
-data class NavigationItem(
+data class NavigationItem(//CLASE PARA LA BARRA DE NAVEGACION
     val screen: Screen,
     val iconUnselected: Int,
-    val iconSelected: Int,
-    val label: String
+    val iconSelected: Int,//ICONO SELECCIONADO
+    val label: String//DESCRIPCION
 )
 
 @Composable
 fun BottomNavigationBar(navController: NavHostController) {
 
-    val items = listOf(
+    val items = listOf(//LISTA DE ICONOS
         NavigationItem(Screen.Principal, R.drawable.home_borde, R.drawable.home_lleno, "Inicio"),
         NavigationItem(Screen.Mensajes, R.drawable.amigo_borde, R.drawable.amigo_lleno, "Chat"),
         NavigationItem(Screen.Busqueda, R.drawable.buscar_borde, R.drawable.buscar_lleno, "Buscar"),
@@ -36,19 +36,20 @@ fun BottomNavigationBar(navController: NavHostController) {
         NavigationItem(Screen.Perfil, R.drawable.perfil_borde, R.drawable.perfil_lleno, "Perfil"),
     )
 
-    NavigationBar(
+    NavigationBar(//CREAMOS BARRA INFERIOR
         containerColor = Color(0xFF121212),
         contentColor = Color(0xFFFFD700)
     ) {
-        val navBackStackEntry by navController.currentBackStackEntryAsState()
-        val currentRoute = navBackStackEntry?.destination?.route
+        val navBackStackEntry by navController.currentBackStackEntryAsState()//LE DAMOS EL ESTADO DE LA NAVEGACION
+        val currentRoute = navBackStackEntry?.destination?.route//LE ASIGNAMOS LA RUTA ACTUAL A navBackStackEntry
 
         items.forEach { item ->
             // AQUI MARCO EL ICONO ACTIVO SEGUN LA PANTALLA EN LA QUE ESTOY
             val isSelected = currentRoute == item.screen.route
-            val iconAsset = if (isSelected) item.iconSelected else item.iconUnselected
+            val iconAsset = if (isSelected) item.iconSelected //AQUI REVISA QUE ESTE SELECCIONADO O NO
+            else item.iconUnselected
 
-            NavigationBarItem(
+            NavigationBarItem(//CREAMOS EL BOTON EN SI
                 selected = isSelected,
                 label = null,
                 alwaysShowLabel = false,
@@ -61,14 +62,14 @@ fun BottomNavigationBar(navController: NavHostController) {
                 },
                 onClick = {
                     // CON ESTO PUEDO VOLVER AL INICIO INCLUSO DESDE UNA PANTALLA DE DETALLE
-                    if (currentRoute != item.screen.route) {
+                    if (currentRoute != item.screen.route) {//SE MUEVE SI PULSAS UNA OPCION DIFERENTE
                         navController.navigate(item.screen.route) {
                             // AQUI REUTILIZO EL HISTORIAL PARA QUE LA APP NO SE LLENE DE PANTALLAS REPETIDAS
                             popUpTo(navController.graph.findStartDestination().id) {
                                 saveState = true
                             }
-                            launchSingleTop = true
-                            restoreState = true
+                            launchSingleTop = true//EVITA DUPLICADOS DE PANTALLA
+                            restoreState = true//RESTAURA ESTADO ANTERIOR
                         }
                     }
                 },

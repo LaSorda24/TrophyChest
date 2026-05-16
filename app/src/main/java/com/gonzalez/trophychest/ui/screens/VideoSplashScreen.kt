@@ -23,50 +23,52 @@ import com.gonzalez.trophychest.R
 import com.gonzalez.trophychest.data.FirebaseManager
 import com.gonzalez.trophychest.navigation.Screen
 
-@OptIn(UnstableApi::class)
+@OptIn(UnstableApi::class)//API MEDIA 3 INSTABLE --------------------------------------
 @Composable
 fun VideoSplashScreen(navController: NavHostController) {
-    val context = LocalContext.current
+    val context = LocalContext.current//CNTEXTO ANDROID ---------------------------------
     val exoPlayer = remember {
-        ExoPlayer.Builder(context).build().apply {
-            val videoUri = "android.resource://${context.packageName}/${R.raw.splash_video}"
+        ExoPlayer.Builder(context).build().apply { //EXOPLAYER
+            val videoUri = "android.resource://${context.packageName}/${R.raw.splash_video}"// RUTA DE VIDEO
             setMediaItem(MediaItem.fromUri(videoUri))
             prepare()
-            playWhenReady = true
+            playWhenReady = true//REPRODUCE EL VIDEO
         }
     }
 
-    DisposableEffect(Unit) {
+    DisposableEffect(Unit) { //EFECTO PARA CAMBIAR DE PANTALLA
         val listener = object : Player.Listener {
-            override fun onPlaybackStateChanged(playbackState: Int) {
-                if (playbackState == Player.STATE_ENDED) {
-                    val destination = if (FirebaseManager.currentUser != null) {
+            override fun onPlaybackStateChanged(playbackState: Int) { //ESTADO DE REPRODUCCION
+                if (playbackState == Player.STATE_ENDED) { //SI EL VIDEO HA TERMINADO
+                    val destination = if (FirebaseManager.currentUser != null) { //REVISA QUE ES USUARIO SEA NULO O NO
                         Screen.Principal.route
                     } else {
                         Screen.Login.route
                     }
 
-                    navController.navigate(destination) {
-                        popUpTo("video_splash") { inclusive = true }
+                    navController.navigate(destination) { //CAMBIA DE PANTLLA
+                        popUpTo("video_splash") { inclusive = true } //INCLUSIVE ELIMINA LA PANTALLA DEL HISTORIAL
                         launchSingleTop = true
                     }
                 }
             }
         }
 
-        exoPlayer.addListener(listener)
+        exoPlayer.addListener(listener)//LISTENER AL RESPRODUCTOR ----------------------------
 
         onDispose {
             exoPlayer.stop()
             exoPlayer.release()
-        }
+        }//CIERRA RECURSO DE VIDEO (REPRODUCTOR)--------------------------------------
     }
 
+    //VISTA TRADICIONAL DENTRO DE CMPOSE
     AndroidView(
         factory = { ctx ->
             PlayerView(ctx).apply {
-                player = exoPlayer
+                player = exoPlayer //UNIMOS LA VISTA A EL REPRODUCTOR
                 useController = false
+                //PARAMETROS DEL VIDEO
                 resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM
                 setBackgroundColor(android.graphics.Color.BLACK)
                 layoutParams = FrameLayout.LayoutParams(

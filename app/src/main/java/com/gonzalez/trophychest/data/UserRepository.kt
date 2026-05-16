@@ -11,7 +11,8 @@ import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
 import java.util.Locale
 
-// APUNTE: ESTE REPOSITORIO CREA Y MANTIENE EL PERFIL PUBLICO DEL USUARIO EN FIRESTORE.
+// ESTE REPOSITORIO CREA Y MANTIENE EL PERFIL PUBLICO DEL USUARIO EN FIRESTORE.
+// USERREPOSITORY ES EL PUENTE ENTRE LA APP Y FIRESTORE PARA EL PERFIL DEL USUARIO.
 object UserRepository {
     private const val MAX_FRIEND_CODE_ATTEMPTS = 8
     private const val MAX_USERNAME_ATTEMPTS = 8
@@ -20,6 +21,7 @@ object UserRepository {
         get() = FirebaseFirestore.getInstance()
 
     fun observeCurrentUser(): Flow<User?> = callbackFlow {
+        // CALLBACKFLOW CONVIERTE EL LISTENER EN TIEMPO REAL DE FIRESTORE EN UN FLOW DE KOTLIN.
         val uid = FirebaseManager.currentUser?.uid
         if (uid == null) {
             trySend(null)
@@ -60,6 +62,7 @@ object UserRepository {
     }
 
     suspend fun ensureUserDocument(user: FirebaseUser): User {
+        // ESTA FUNCION EVITA QUE UN LOGIN ENTRE SIN PERFIL PUBLICO CREADO EN FIRESTORE.
         getUser(user.uid)?.let { existing ->
             if (existing.usernameLower.isNotBlank() && existing.friendCode.isNotBlank()) {
                 return existing
@@ -95,6 +98,7 @@ object UserRepository {
     }
 
     private suspend fun completeExistingUserDocument(user: FirebaseUser, usernameInput: String): User {
+        // COMPLETA PERFILES ANTIGUOS QUE NO TENIAN USERNAME O CODIGO DE AMIGO.
         val username = ChatValidation.requireValidUsername(usernameInput)
         repeat(MAX_FRIEND_CODE_ATTEMPTS) { attempt ->
             val friendCode = UserDefaults.generateFriendCode()
@@ -174,6 +178,7 @@ object UserRepository {
     }
 
     suspend fun createUserDocument(user: FirebaseUser, usernameInput: String): User {
+        // CREAR USUARIO NO ES SOLO GUARDAR DATOS; TAMBIEN RESERVO USERNAME Y FRIENDCODE UNICOS.
         val username = ChatValidation.requireValidUsername(usernameInput)
         val displayName = user.displayName
             ?: user.email?.substringBefore("@")
@@ -261,6 +266,7 @@ object UserRepository {
     }
 
     suspend fun updateUsername(usernameInput: String): User {
+        // EL CAMBIO DE NOMBRE USA TRANSACCION PARA NO DUPLICAR USERNAMES ENTRE USUARIOS.
         val currentUser = FirebaseManager.currentUser ?: error("Inicia sesion para editar tu perfil.")
         val username = ChatValidation.requireValidUsername(usernameInput)
         val userRef = db.collection("users").document(currentUser.uid)
@@ -303,6 +309,7 @@ object UserRepository {
     }
 
     suspend fun updateProfileImages(profileImageId: Int, bannerImageId: Int): User {
+        // AVATAR Y BANNER SON IDS NUMERICOS, NO IMAGENES SUBIDAS; ESO SIMPLIFICA FIRESTORE.
         val uid = FirebaseManager.currentUser?.uid ?: error("Inicia sesion para editar tu perfil.")
         require(profileImageId in UserDefaults.MIN_IMAGE_ID..UserDefaults.MAX_IMAGE_ID) {
             "Avatar no valido."
@@ -324,6 +331,7 @@ object UserRepository {
     }
 
     suspend fun findUserByFriendCode(friendCodeInput: String): UserProfile? {
+        // BUSCAMOS PRIMERO EN FRIENDCODES PARA ENCONTRAR RAPIDO EL UID DEL OTRO USUARIO.
         UserDefaults.friendCodeError(friendCodeInput)?.let { throw IllegalArgumentException(it) }
         val friendCode = UserDefaults.normalizeFriendCode(friendCodeInput)
         val reservation = db.collection("friendCodes").document(friendCode).get().await()

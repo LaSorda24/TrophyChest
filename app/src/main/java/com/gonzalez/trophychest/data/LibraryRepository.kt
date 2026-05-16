@@ -4,7 +4,7 @@ import android.content.Context
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-// APUNTE: AQUI MEZCLO BIBLIOTECAS DE STEAM Y PLAYSTATION PARA ENSENARLAS COMO UNA SOLA LISTA.
+// AQUI MEZCLO BIBLIOTECAS DE STEAM Y PLAYSTATION PARA ENSENARLAS COMO UNA SOLA LISTA.
 object LibraryRepository {
     suspend fun getRecentGamesForHome(context: Context): Result<List<Juego>> = withContext(Dispatchers.IO) {
         val steamGames = if (SteamRepository.getLinkedAccount(context) != null) {

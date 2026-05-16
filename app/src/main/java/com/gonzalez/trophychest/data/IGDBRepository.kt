@@ -6,7 +6,7 @@ import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-// APUNTE: IGDB DA CATALOGO DE JUEGOS; NO ES UNA CUENTA DE USUARIO NI GUARDA TROFEOS.
+// IGDB DA CATALOGO DE JUEGOS; NO ES UNA CUENTA DE USUARIO NI GUARDA TROFEOS.
 object IGDBRepository {
     private const val MAX_RECOMMENDATION_GENRES = 5
     private const val PREFS_NAME = "igdb_repository"
@@ -15,6 +15,7 @@ object IGDBRepository {
     private val gson = Gson()
 
     val categories: List<IGDBCategoryDefinition> = listOf(
+        // ESTAS CATEGORIAS SON LAS QUE LA APP ENSENA EN ESPANOL Y TRADUCE AL GENERO REAL DE IGDB.
         IGDBCategoryDefinition(slug = "accion", displayName = "ACCION", igdbGenreName = "Action"),
         IGDBCategoryDefinition(slug = "aventura", displayName = "AVENTURA", igdbGenreName = "Adventure"),
         IGDBCategoryDefinition(slug = "rpg", displayName = "RPG", igdbGenreName = "Role-playing (RPG)"),
@@ -36,6 +37,7 @@ object IGDBRepository {
         context: Context,
         forceRefresh: Boolean = false
     ): Result<IGDBExploreContent> = withContext(Dispatchers.IO) {
+        // EXPLORAR PERSONALIZA POR GENEROS SACADOS DE LA CACHE DEL USUARIO.
         val recommendationGenres = buildExploreGenreFilters(context)
         val genreQuery = recommendationGenres.toGenreQueryParameter()
         val cached = loadExploreCache(context, genreQuery)
@@ -46,6 +48,7 @@ object IGDBRepository {
 
         val baseUrl = resolvedProxyBaseUrl()
         if (baseUrl.isBlank()) {
+            // SI NO HAY PROXY CONFIGURADO, SOLO PUEDO DEVOLVER CACHE O ERROR CONTROLADO.
             if (cached != null) {
                 return@withContext Result.success(cached.content)
             }
@@ -88,6 +91,7 @@ object IGDBRepository {
     }
 
     suspend fun searchGames(query: String): Result<List<IGDBGame>> = withContext(Dispatchers.IO) {
+        // LA BUSQUEDA GLOBAL DE LA CABECERA PASA POR AQUI.
         val normalizedQuery = query.trim()
         if (normalizedQuery.isBlank()) {
             return@withContext Result.success(emptyList())
@@ -111,6 +115,7 @@ object IGDBRepository {
     }
 
     suspend fun getGameDetails(gameId: String): Result<Juego> = withContext(Dispatchers.IO) {
+        // IGDB DA CATALOGO; LUEGO INTENTO MEJORAR DESCRIPCION/PEGI CON STEAM SI HAY APPID.
         val numericId = gameId.toLongOrNull()
             ?: return@withContext Result.failure(
                 IllegalArgumentException("Identificador de IGDB no valido.")
@@ -169,6 +174,7 @@ object IGDBRepository {
     }
 
     private fun resolvedProxyBaseUrl(): String {
+        // PUEDO USAR IGDB_PROXY_BASE_URL O REUTILIZAR RELEASE_CALENDAR_BASE_URL SI APUNTAN AL MISMO WORKER.
         return proxyBaseUrl(
             igdbProxyBaseUrl = BuildConfig.IGDB_PROXY_BASE_URL,
             releaseCalendarBaseUrl = BuildConfig.RELEASE_CALENDAR_BASE_URL

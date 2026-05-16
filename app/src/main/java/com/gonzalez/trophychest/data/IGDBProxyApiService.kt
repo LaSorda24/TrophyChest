@@ -4,7 +4,9 @@ import retrofit2.http.GET
 import retrofit2.http.Path
 import retrofit2.http.Query
 
+// ANDROID NO LLAMA A IGDB DIRECTAMENTE; LLAMA A MI PROXY Y EL PROXY HABLA CON IGDB/TWITCH.
 interface IGDBProxyApiService {
+    // @GET INDICA LA RUTA DEL WORKER Y @QUERY METE PARAMETROS EN LA URL.
     @GET("explore-games")
     suspend fun getExploreGames(
         @Query("genres") genres: String? = null,

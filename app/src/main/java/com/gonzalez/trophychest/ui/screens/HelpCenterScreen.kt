@@ -38,7 +38,7 @@ private val HelpBackground = Color(0xFF0F0F0F)
 private val HelpSurface = Color(0xFF1A1A1A)
 private val HelpAccent = Color(0xFFF6C453)
 
-// APUNTE: ESTAS LISTAS SON CONTENIDO LOCAL DE AYUDA, NO VIENEN DE FIREBASE NI DE INTERNET.
+// ESTAS LISTAS SON CONTENIDO LOCAL DE AYUDA, NO VIENEN DE FIREBASE NI DE INTERNET.
 private data class HelpBlock(
     val title: String,
     val bullets: List<String>
@@ -142,7 +142,7 @@ private val helpSections = listOf(
     )
 )
 
-// APUNTE: CENTRO DE AYUDA EXPLICA AL USUARIO COMO USAR LA APP DESDE DENTRO.
+// CENTRO DE AYUDA EXPLICA AL USUARIO COMO USAR LA APP DESDE DENTRO.
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HelpCenterScreen(navController: NavHostController) {

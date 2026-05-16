@@ -9,7 +9,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import retrofit2.HttpException
 
-// APUNTE: PLAYSTATION PASA POR EL PROXY PORQUE LA APP NO DEBE GUARDAR LOGICA SENSIBLE DE PSN.
+// PLAYSTATION PASA POR EL PROXY PORQUE LA APP NO DEBE GUARDAR LOGICA SENSIBLE DE PSN.
 object PlayStationRepository {
     private const val PREFS_NAME = "playstation_repository_prefs"
     private const val KEY_LINKED_ACCOUNT = "linked_account"
@@ -29,6 +29,7 @@ object PlayStationRepository {
     fun hasProxyEndpoint(): Boolean = BuildConfig.PLAYSTATION_PROXY_BASE_URL.isNotBlank()
 
     fun setupMessage(): String {
+        // PLAYSTATION DEPENDE DEL PROXY; SIN URL NO HAY FORMA SEGURA DE LLAMAR A PSN.
         return if (hasProxyEndpoint()) {
             "PlayStation se vincula con un NPSSO generado desde PlayStation.com."
         } else {
@@ -59,6 +60,7 @@ object PlayStationRepository {
     }
 
     suspend fun linkWithNpsso(context: Context, npsso: String): PlayStationSyncResult = withContext(Dispatchers.IO) {
+        // EL NPSSO NO LO RESUELVE ANDROID; SE MANDA AL PROXY Y ESTE DEVUELVE TOKENS NORMALIZADOS.
         if (!hasProxyEndpoint()) return@withContext PlayStationSyncResult.MissingProxyEndpoint
         val currentUid = currentUserUid()
             ?: return@withContext PlayStationSyncResult.Failure("Inicia sesion para vincular PlayStation.")
@@ -74,6 +76,7 @@ object PlayStationRepository {
         saveLinkedAccount(context, currentUid, linkedAccount)
 
         val history = runCatching {
+            // TITLE HISTORY TRAE LOS JUEGOS JUGADOS RECIENTEMENTE EN PLAYSTATION.
             api.getTitleHistory(PlayStationRefreshRequest(linkedAccount.refreshToken))
         }.getOrElse { throwable ->
             return@withContext PlayStationSyncResult.LinkedOnly(
@@ -87,6 +90,7 @@ object PlayStationRepository {
         saveGames(context, currentUid, games)
 
         val trophies = runCatching {
+            // TROPHY TITLES TRAE LOS JUEGOS QUE TIENEN TROFEOS DISPONIBLES.
             api.getTrophyTitles(PlayStationRefreshRequest(linkedAccount.refreshToken))
         }.getOrElse { throwable ->
             return@withContext PlayStationSyncResult.Success(
@@ -109,6 +113,7 @@ object PlayStationRepository {
     }
 
     suspend fun syncLibrary(context: Context): PlayStationSyncResult = withContext(Dispatchers.IO) {
+        // SINCRONIZAR REUTILIZA EL REFRESH TOKEN GUARDADO PARA ACTUALIZAR JUEGOS Y TROFEOS.
         if (!hasProxyEndpoint()) return@withContext PlayStationSyncResult.MissingProxyEndpoint
         val currentUid = currentUserUid()
             ?: return@withContext PlayStationSyncResult.Failure("Inicia sesion para sincronizar PlayStation.")
@@ -155,6 +160,7 @@ object PlayStationRepository {
     }
 
     suspend fun getAchievementBundle(context: Context, gameId: String): Result<PlayStationAchievementBundle> = withContext(Dispatchers.IO) {
+        // PARA TROFEOS DE PSN USO EL NOMBRE DE SERVICIO Y EL NPCOMMUNICATIONID DEL JUEGO.
         var linkedAccount = getLinkedAccount(context)
             ?: return@withContext Result.failure(IllegalStateException("Vincula PlayStation para ver tus trofeos."))
         val currentUid = currentUserUid()
@@ -280,6 +286,7 @@ object PlayStationRepository {
         game: Juego,
         response: PlayStationAchievementResponse
     ): PlayStationAchievementBundle {
+        // AQUI NORMALIZO TROFEOS DE PLAYSTATION AL MODELO COMUN QUE USA LA UI.
         val achievements = response.trophies
         val total = achievements.size
         val unlocked = achievements.count { it.unlocked }
@@ -337,6 +344,7 @@ object PlayStationRepository {
     }
 
     private fun api(): PlayStationApiService {
+        // RETROFIT CREA EL SERVICIO APUNTANDO AL PROXY, NO DIRECTAMENTE A PLAYSTATION.
         return RetrofitInstance.playStationApi(BuildConfig.PLAYSTATION_PROXY_BASE_URL)
     }
 
@@ -382,6 +390,7 @@ object PlayStationRepository {
     }
 
     private suspend fun enrichWithIgdbDetails(game: Juego): Juego {
+        // PLAYSTATION NO SIEMPRE DA BUENAS PORTADAS/DESCRIPCION; IGDB AYUDA A COMPLETAR EL DETALLE.
         if (!IGDBRepository.hasEndpoint()) return game
 
         val igdbId = IGDBRepository.searchGames(game.title)
@@ -450,6 +459,7 @@ object PlayStationRepository {
     }
 
     private fun readScopedJson(context: Context, baseKey: String): String? {
+        // IGUAL QUE STEAM, LA CACHE VA SEPARADA POR USUARIO DE FIREBASE.
         val currentUid = currentUserUid() ?: return null
         val key = scopedPreferenceKey(baseKey, currentUid) ?: return null
         return prefs(context).getString(key, null)

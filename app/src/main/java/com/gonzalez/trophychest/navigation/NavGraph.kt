@@ -23,13 +23,14 @@ import com.gonzalez.trophychest.ui.screens.TrofeosScreen
 import com.gonzalez.trophychest.ui.screens.VideoSplashScreen
 
 @Composable
-fun SetupNavGraph(navController: NavHostController) {
+fun SetupNavGraph(navController: NavHostController) {//NAV CONTROLER DE MAIN
+    // EL NAVHOST ES EL MAPA DE PANTALLAS; CADA COMPOSABLE ASOCIA UNA RUTA CON UNA UI.
     NavHost(
         navController = navController,
         // AQUI ARRANCO LA APP CON EL VIDEO DE PRESENTACION
         startDestination = "video_splash"
     ) {
-        // PRIMERO ENSENO EL SPLASH Y DESPUES YA PASO AL LOGIN O AL INICIO
+        // PRIMERO ENSEÑO EL SPLASH Y DESPUES YA PASO AL LOGIN O AL INICIO
         composable(route = "video_splash") {
             VideoSplashScreen(navController = navController)
         }
@@ -69,19 +70,21 @@ fun SetupNavGraph(navController: NavHostController) {
 
         // AQUI ABRO LA FICHA COMPLETA DE UN JUEGO
         composable(
-            route = Screen.DetalleJuego.route,
+            route = Screen.DetalleJuego.route,//RUTA DEL JUEGO
             arguments = listOf(
+                //DATOS QUE NECESITA EL METODO
                 navArgument("platform") { type = NavType.StringType },
                 navArgument("gameId") { type = NavType.StringType }
             )
-        ) { backStackEntry ->
+        ) { backStackEntry ->//NAVEGACION ACTUAL MAS ARGUMENTOS ---------------------------------------
+            // BACKSTACKENTRY CONTIENE LOS PARAMETROS QUE VIAJAN EN LA RUTA.
             val rawPlatform = backStackEntry.arguments?.getString("platform")
             val gameId = backStackEntry.arguments?.getString("gameId") ?: ""
             DetalleJuegosScreen(
                 navController = navController,
-                platform = rawPlatform.toPlatformOrDefault(),
+                platform = rawPlatform.toPlatformOrDefault(),//CONVIERTE LA PLATAFORMA EN TIPO PLATAFORMA , VARIABLE ABAJO
                 gameId = gameId,
-                onBack = { navController.popBackStack() }
+                onBack = { navController.popBackStack() }//VUELVE ATRAS
             )
         }
 
@@ -99,6 +102,7 @@ fun SetupNavGraph(navController: NavHostController) {
                 navController = navController,
                 platform = rawPlatform.toPlatformOrDefault(),
                 gameId = gameId
+                //NO HAY ON BACK
             )
         }
 
@@ -109,16 +113,16 @@ fun SetupNavGraph(navController: NavHostController) {
 
         // AQUI ABRO EL CHAT CON UN AMIGO CONCRETO
         composable(
-            route = "chat/{connectionId}",
+            route = "chat/{connectionId}",//REGISTRA RUTA
             arguments = listOf(
-                navArgument("connectionId") { type = NavType.StringType }
+                navArgument("connectionId") { type = NavType.StringType }//ARGUMENTO ID TIPO STRING
             )
         ) { backStackEntry ->
             val connectionId = backStackEntry.arguments?.getString("connectionId") ?: ""
-            ChatScreen(navController, connectionId)
+            ChatScreen(navController, connectionId)//ABRIMOS PANTALLA
         }
 
-        // AQUI ENSENO LOS JUEGOS DE UNA CATEGORIA DE IGDB
+        //ENSEÑO LOS JUEGOS DE UNA CATEGORIA DE IGDB
         composable(
             route = "categoria/{genero}",
             arguments = listOf(
@@ -131,7 +135,8 @@ fun SetupNavGraph(navController: NavHostController) {
     }
 }
 
-private fun String?.toPlatformOrDefault(): PlataformaJuego {
+private fun String?.toPlatformOrDefault(): PlataformaJuego {//METODO PARA PASAR DE STRONG A PLATAFORMA
+    // SI LA RUTA VIENE MAL, USO STEAM POR DEFECTO PARA EVITAR QUE LA APP CRASHEE.
     val platformName = this.orEmpty()
-    return PlataformaJuego.entries.firstOrNull { it.name == platformName } ?: PlataformaJuego.STEAM
+    return PlataformaJuego.entries.firstOrNull { it.name == platformName } ?: PlataformaJuego.STEAM//RECIBE STEAM POR DEFECTO
 }

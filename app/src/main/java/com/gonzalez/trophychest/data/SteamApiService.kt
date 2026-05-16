@@ -4,7 +4,9 @@ import retrofit2.http.GET
 import retrofit2.http.Path
 import retrofit2.http.Query
 
+// ESTE INTERFACE NO IMPLEMENTA LOGICA; SOLO DECLARA LAS RUTAS HTTP QUE RETROFIT SABE LLAMAR.
 interface SteamApiService {
+    // SUSPEND PORQUE CADA LLAMADA HTTP SE HACE DESDE CORRUTINA.
     @GET("IPlayerService/GetOwnedGames/v0001/")
     suspend fun getOwnedGames(
         @Query("key") apiKey: String,
@@ -50,6 +52,7 @@ interface SteamApiService {
 }
 
 interface SteamStoreApiService {
+    // STEAM STORE ES OTRA BASE URL DISTINTA A STEAM API, POR ESO ESTA EN OTRO SERVICIO.
     @GET("api/appdetails")
     suspend fun getAppDetails(
         @Query("appids") appIds: String,

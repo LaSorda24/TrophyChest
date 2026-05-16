@@ -1,4 +1,4 @@
-﻿package com.gonzalez.trophychest.ui.screens
+package com.gonzalez.trophychest.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -56,7 +56,7 @@ private val ExploreBackground = Color(0xFF0F0F0F)
 private val ExploreSectionSurface = Color(0xFF181818)
 private val ExploreItemSurface = Color(0xFF222222)
 
-// APUNTE: EXPLORAR PIDE RECOMENDACIONES A IGDB A TRAVES DEL PROXY.
+// EXPLORAR PIDE RECOMENDACIONES A IGDB A TRAVES DEL PROXY.
 @Composable
 fun ExplorarScreen(navController: NavHostController) {
     val context = LocalContext.current

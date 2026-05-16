@@ -70,12 +70,13 @@ import com.gonzalez.trophychest.ui.theme.ReadableSecondary
 import com.gonzalez.trophychest.ui.theme.ReadableTertiary
 import com.gonzalez.trophychest.ui.theme.VisibleOutline
 
-// APUNTE: TROFEOS JUNTA LOGROS DE STEAM Y PLAYSTATION Y PERMITE FILTRARLOS.
+// TROFEOS JUNTA LOGROS DE STEAM Y PLAYSTATION Y PERMITE FILTRARLOS.
 @Composable
 fun TrofeosScreen(navController: NavHostController) {
     val context = LocalContext.current
     val linkedAccount = SteamRepository.getLinkedAccount(context)
     val linkedPlayStationAccount = PlayStationRepository.getLinkedAccount(context)
+    // PRODUCESTATE CARGA LOS JUEGOS CON LOGROS CUANDO CAMBIAN LAS CUENTAS VINCULADAS.
     val achievementState by produceState<RemoteUiState<List<Juego>>>(
         initialValue = RemoteUiState.Loading,
         key1 = linkedAccount?.steamId,
@@ -113,6 +114,7 @@ private fun TrofeosContent(
     navController: NavHostController,
     achievementState: RemoteUiState<List<Juego>>
 ) {
+    // ESTADO LOCAL DE FILTROS; AL CAMBIARLO, SE RECALCULA LA LISTA SIN VOLVER A PEDIR DATOS.
     var mostrarMenuFiltros by remember { mutableStateOf(false) }
     var sliderValue by remember { mutableFloatStateOf(0f) }
     var porcentajeAplicado by remember { mutableFloatStateOf(0f) }
@@ -122,6 +124,7 @@ private fun TrofeosContent(
     val juegosBase = (achievementState as? RemoteUiState.Success)?.data.orEmpty()
 
     val juegosFiltrados = remember(juegosBase, porcentajeAplicado, plataformasSeleccionadas) {
+        // REMEMBER EVITA RECALCULAR FILTROS SI NO CAMBIAN JUEGOS, PORCENTAJE O PLATAFORMAS.
         AchievementFilters.filterGames(
             games = juegosBase,
             minCompletion = porcentajeAplicado,

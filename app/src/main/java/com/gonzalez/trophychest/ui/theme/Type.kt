@@ -6,7 +6,6 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 
-// AQUI DEFINO LA LETRA BASE PARA QUE TODAS LAS PANTALLAS SE VEAN PARECIDAS
 val Typography = Typography(
     bodyLarge = TextStyle(
         fontFamily = FontFamily.Default,

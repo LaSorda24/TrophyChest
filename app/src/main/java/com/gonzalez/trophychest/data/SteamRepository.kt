@@ -14,7 +14,7 @@ import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
 import retrofit2.HttpException
 
-// APUNTE: ESTE REPOSITORIO CENTRALIZA STEAM: VINCULAR CUENTA, CACHEAR JUEGOS Y CARGAR LOGROS.
+// ESTE REPOSITORIO CENTRALIZA STEAM: VINCULAR CUENTA, CACHEAR JUEGOS Y CARGAR LOGROS.
 object SteamRepository {
     private const val PREFS_NAME = "steam_repository_prefs"
     private const val KEY_LINKED_ACCOUNT = "linked_account"
@@ -41,6 +41,7 @@ object SteamRepository {
     fun hasApiKey(): Boolean = BuildConfig.STEAM_API_KEY.isNotBlank()
 
     fun getLinkedAccount(context: Context): SteamLinkedAccount? {
+        // LA CUENTA VINCULADA SE GUARDA LOCALMENTE Y SEPARADA POR UID DE FIREBASE.
         val json = readScopedJson(context, KEY_LINKED_ACCOUNT) ?: return null
         return runCatching { gson.fromJson(json, SteamLinkedAccount::class.java) }.getOrNull()
     }
@@ -60,6 +61,7 @@ object SteamRepository {
     }
 
     suspend fun importLibrary(context: Context, profileInput: String): SteamSyncResult = withContext(Dispatchers.IO) {
+        // WITHCONTEXT(IO) MUEVE RED Y DISCO FUERA DEL HILO PRINCIPAL.
         if (!hasApiKey()) return@withContext SteamSyncResult.MissingApiKey
         val currentUid = currentUserUid()
             ?: return@withContext SteamSyncResult.Failure("Inicia sesion para vincular una cuenta de Steam.")
@@ -68,6 +70,7 @@ object SteamRepository {
         resolvedAccount.fold(
             onSuccess = { linkedAccount ->
                 val ownedGamesResponse = runCatching {
+                    // AQUI SE HACE LA LLAMADA REAL A LA API OFICIAL DE STEAM PARA JUEGOS DEL USUARIO.
                     RetrofitInstance.steamApi.getOwnedGames(BuildConfig.STEAM_API_KEY, linkedAccount.steamId)
                 }.getOrElse { throwable ->
                     return@withContext SteamSyncResult.Failure(errorMessageFor(throwable))
@@ -99,6 +102,7 @@ object SteamRepository {
     }
 
     suspend fun getGameDetails(context: Context, gameId: String): Result<Juego> = withContext(Dispatchers.IO) {
+        // PRIMERO BUSCO EN CACHE; SI NO HAY DATOS SUFICIENTES, PIDO DETALLES A STEAM STORE.
         val linkedGame = getCachedGame(context, gameId)
         val exploreGame = getCachedExploreGame(context, gameId)
         val categoryGame = getCachedCategoryGame(context, gameId)
@@ -277,6 +281,7 @@ object SteamRepository {
     }
 
     suspend fun getGamesWithAchievementSummaries(context: Context): Result<List<Juego>> = withContext(Dispatchers.IO) {
+        // ESTA FUNCION PREPARA LA LISTA DE JUEGOS QUE APARECE EN LA PANTALLA DE TROFEOS.
         val linkedAccount = getLinkedAccount(context)
             ?: return@withContext Result.failure(IllegalStateException("Vincula una cuenta de Steam para ver tus trofeos."))
         val currentUid = currentUserUid()
@@ -321,6 +326,7 @@ object SteamRepository {
     }
 
     suspend fun getAchievementBundle(context: Context, gameId: String): Result<SteamAchievementBundle> = withContext(Dispatchers.IO) {
+        // BUNDLE SIGNIFICA PAQUETE: JUEGO + LISTA DE LOGROS + RESUMEN.
         val game = getCachedGame(context, gameId) ?: publicSteamGame(gameId)
             ?: return@withContext Result.failure(IllegalStateException("Identificador de Steam no valido."))
         val linkedAccount = getLinkedAccount(context)
@@ -396,6 +402,7 @@ object SteamRepository {
     }
 
     private suspend fun resolveProfileInput(profileInput: String): Result<SteamLinkedAccount> = withContext(Dispatchers.IO) {
+        // EL USUARIO PUEDE PEGAR STEAMID64 O URL; AQUI LO CONVIERTO A STEAMID REAL.
         val trimmedInput = profileInput.trim()
         if (trimmedInput.isBlank()) {
             return@withContext Result.failure(IllegalArgumentException("Introduce un SteamID64 o una URL publica de Steam."))
@@ -433,6 +440,7 @@ object SteamRepository {
     }
 
     private suspend fun fetchAchievementBundle(steamId: String, game: Juego): SteamAchievementBundle? {
+        // PARA MOSTRAR LOGROS NECESITO DOS COSAS: PROGRESO DEL USUARIO Y ESQUEMA/NOMBRES DEL JUEGO.
         val appId = game.platformGameId.toIntOrNull() ?: return null
         val playerAchievements = runCatching {
             RetrofitInstance.steamApi.getPlayerAchievements(BuildConfig.STEAM_API_KEY, steamId, appId)
@@ -735,6 +743,7 @@ object SteamRepository {
         context: Context,
         appIds: List<String>
     ): Map<String, SteamStoreAppDetails> = coroutineScope {
+        // COROUTINESCOPE + ASYNC PERMITE PEDIR VARIOS DETALLES EN PARALELO SIN BLOQUEAR LA UI.
         val cachedDetails = loadDetailsCache(context)
         val missingIds = appIds
             .distinct()
@@ -817,6 +826,7 @@ object SteamRepository {
     }
 
     private fun readScopedJson(context: Context, baseKey: String): String? {
+        // SCOPED SIGNIFICA QUE CADA USUARIO TIENE SUS PROPIAS CLAVES DE CACHE.
         val currentUid = currentUserUid() ?: return null
         val key = scopedPreferenceKey(baseKey, currentUid) ?: return null
         return prefs(context).getString(key, null)
@@ -939,6 +949,7 @@ object SteamRepository {
 }
 
 object SteamInputParser {
+    // ESTE PARSER ACEPTA TANTO ID DIRECTO COMO URL PUBLICA DE STEAM.
     private val steamIdRegex = Regex("""^\d{17}$""")
     private val profilesRegex = Regex("""steamcommunity\.com/profiles/(\d{17})""", RegexOption.IGNORE_CASE)
     private val vanityRegex = Regex("""steamcommunity\.com/id/([^/?#]+)""", RegexOption.IGNORE_CASE)

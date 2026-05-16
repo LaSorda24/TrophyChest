@@ -76,7 +76,7 @@ import com.gonzalez.trophychest.ui.theme.ReadableTertiary
 import com.gonzalez.trophychest.ui.theme.SubtleTrack
 import com.gonzalez.trophychest.ui.theme.VisibleOutline
 
-// APUNTE: DETALLE JUEGO RECIBE PLATAFORMA + ID Y DECIDE QUE REPOSITORIO USAR.
+// DETALLE JUEGO RECIBE PLATAFORMA + ID Y DECIDE QUE REPOSITORIO USAR.
 @Composable
 fun DetalleJuegosScreen(
     navController: NavHostController,

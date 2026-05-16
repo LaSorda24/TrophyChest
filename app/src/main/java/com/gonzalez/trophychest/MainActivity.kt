@@ -40,6 +40,7 @@ import kotlinx.coroutines.delay
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
+        // ONCREATE ES EL PRIMER PUNTO REAL DE LA APP ANDROID; AQUI MONTO COMPOSE.
         installSplashScreen()
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -52,14 +53,16 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-// APUNTE: ESTA ES LA ESTRUCTURA GENERAL DE LA APP: CABECERA, MENU INFERIOR Y NAVEGACION.
+// CABECERA, MENU INFERIOR Y NAVEGACION.
 @Composable
 fun MiApp() {
-    val navController = rememberNavController()
-    val navBackStackEntry by navController.currentBackStackEntryAsState()
-    val currentRoute = navBackStackEntry?.destination?.route
-    var searchQuery by rememberSaveable { mutableStateOf("") }
+    // ESTA FUNCION HACE DE "RAIZ" DE LA UI. NO ES VIEWMODEL; SOLO COORDINA ESTADO GLOBAL DE PANTALLA.
+    val navController = rememberNavController()//CONTROLLER PARA LA NAVEGACION
+    val navBackStackEntry by navController.currentBackStackEntryAsState()//REVISA LA PANTALLA ACTUAL
+    val currentRoute = navBackStackEntry?.destination?.route//GUARDA LA RUTA EN TEXTO
+    var searchQuery by rememberSaveable { mutableStateOf("") }//GUARDA CON SAVEABLE PARA SOBREVIVIR A CAMBIOS
 
+    //VARIABLES PARA DETECTAR PANTALLAS
     val esVideo = currentRoute == "video_splash"
     val esLogin = currentRoute == "login"
     val esExplorar = currentRoute == "explorar"
@@ -69,99 +72,116 @@ fun MiApp() {
     val esDetalleJuego = currentRoute?.startsWith("detalle_juego") == true
     val esHelpCenter = currentRoute == Screen.HelpCenter.route
 
+    //MOSTRAR EL MENU INFERIOR
     val mostrarMenuInferior = !esVideo && !esLogin && !esExplorar && !esChat && !esCategoria &&
         !esTrofeos && !esDetalleJuego && !esHelpCenter
 
+    //FUNCION PARA LIMPIAR LA BUSQUEDA
     fun clearSearch() {
         searchQuery = ""
     }
-
+    //DECIDE CUANDO SE LIMPIA LA BUSQUEDA
     LaunchedEffect(esVideo, esLogin, esHelpCenter) {
         if (esVideo || esLogin || esHelpCenter) {
             clearSearch()
         }
     }
-
+    //QUITA ESPACIOS PARA LA BUSQUEDA
     val trimmedSearchQuery = searchQuery.trim()
+
+    //CREA UN ESTADO PARA ACTUALIZAR LOS RESULTADOS
+    // PRODUCESTATE LANZA UNA CORRUTINA Y CONVIERTE EL RESULTADO DE IGDB EN ESTADO PARA REDIBUJAR LA UI.
     val searchResultsState by produceState<RemoteUiState<List<IGDBGame>>>(
-        initialValue = RemoteUiState.Empty(""),
-        key1 = trimmedSearchQuery
+        initialValue = RemoteUiState.Empty(""),//VLOR INICIAL VACIO
+        key1 = trimmedSearchQuery//CADA VEZ QUE ESCRIBIMOS SE EJECUTA DE NUEVO
     ) {
+        //SI LA LISTA ESTA VACIA NO LLAMA A LA BASE DE DATOS
         if (trimmedSearchQuery.isBlank()) {
             value = RemoteUiState.Empty("")
             return@produceState
         }
 
-        value = RemoteUiState.Loading
-        delay(350)
+        value = RemoteUiState.Loading//CARGANDO
+        delay(350)//TIEMPO DE ESPERA
 
+        //LLAMAMOS A IGDB PARA BUSCAR JUEGOS
         val result = IGDBRepository.searchGames(trimmedSearchQuery)
-        value = result.fold(
+        value = result.fold(//LO TRANSFORMA EN INTERFAZ
             onSuccess = { games ->
                 if (games.isEmpty()) {
-                    RemoteUiState.Empty("No se encuentran resultados.")
+                    RemoteUiState.Empty("No se encuentran resultados.")//SI ESTA VACIA MUSTRA MENSAJE
                 } else {
-                    RemoteUiState.Success(games)
+                    RemoteUiState.Success(games)//SI HAY RESULTADOS DEVUELVE LA LISTA
                 }
             },
             onFailure = { throwable ->
                 RemoteUiState.Error(throwable.message ?: "No se pudo completar la busqueda.")
+                //SI LA BUSQUEDA TIENE ALGUN FALLO DEVUELVE UN MENSAJE
             }
         )
     }
 
     Scaffold(
+        // SCAFFOLD ES LA ESTRUCTURA VISUAL: ARRIBA CABECERA, ABAJO MENU, EN MEDIO NAVGRAPH.
         containerColor = Color(0xFF0F0F0F),
         topBar = {
-            if (!esVideo && !esLogin && !esHelpCenter) {
+            if (!esVideo && !esLogin && !esHelpCenter) {//MUESTRA LA CABECERA CUANDO NO ESTAMOS EN ...
                 TopHeader(
+                    //CONECTAMOS LA CABECERA CON EL CONTROLLER
                     searchQuery = searchQuery,
                     onSearchQueryChange = { searchQuery = it },
                     onClearSearch = { clearSearch() },
-                    searchResultsState = searchResultsState,
-                    onGameClick = { game ->
+                    searchResultsState = searchResultsState,//COGEMOS LOS RESULTADOS
+                    onGameClick = { game ->//SI SE DA CLICK EN UN JUEGO...
                         clearSearch()
                         navController.navigate(
-                            Screen.DetalleJuego.createRoute(
+                            Screen.DetalleJuego.createRoute(//SE LLAMA AL METODO DE SCREEN PARA CREAR RUTA
                                 platform = PlataformaJuego.IGDB,
                                 gameId = game.id.toString()
+                                //CREA LA RUTA CON LA PLANTILLA DETALE Y LOS DATOS DEL JUEGO
                             )
                         )
                     },
+                    //AL PULSAR AYUDA....
                     onHelpClick = {
                         clearSearch()
                         navController.navigate(Screen.HelpCenter.route) {
-                            launchSingleTop = true
+                            launchSingleTop = true//EVITAMOS ABRIR VARIAS AYUDAS
                         }
                     }
                 )
             }
         },
+
+        //MENU INFERIOR
         bottomBar = {
             AnimatedVisibility(
-                visible = mostrarMenuInferior,
+                visible = mostrarMenuInferior,//ESTADO PARA MOSTRAR
                 enter = fadeIn() + slideInVertically(initialOffsetY = { it }),
-                exit = fadeOut() + slideOutVertically(targetOffsetY = { it })
+                exit = fadeOut() + slideOutVertically(targetOffsetY = { it })//ANIMACION PARA SALIR
             ) {
-                BottomNavigationBar(navController = navController)
+                BottomNavigationBar(navController = navController)//MOSTRAMOS EL MENU
             }
         }
+        //INDICAMOS EL TAMAÑO SEGUN SITUACION
     ) { innerPadding ->
         val paddingAjustado = when {
-            esVideo || esLogin -> PaddingValues(0.dp)
-            esExplorar || esChat || esCategoria || esDetalleJuego || esTrofeos || esHelpCenter -> PaddingValues(
+            esVideo || esLogin -> PaddingValues(0.dp)//SIN MENUS
+            esExplorar || esChat || esCategoria || esDetalleJuego || esTrofeos || esHelpCenter -> PaddingValues(//SOLO SUPEIOR
                 top = innerPadding.calculateTopPadding(),
                 bottom = 0.dp
             )
             else -> innerPadding
         }
 
+        //RESTO DE PANTALLAS
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingAjustado)
         ) {
             SetupNavGraph(navController = navController)
+            //CARGAMOS NAVEGACION PARA SABER EN QUE PANTALLA ESTAMOS
         }
     }
 }

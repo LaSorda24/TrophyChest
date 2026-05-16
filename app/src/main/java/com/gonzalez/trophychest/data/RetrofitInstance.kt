@@ -8,11 +8,13 @@ import java.net.InetAddress
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 
+// RETROFITINSTANCE ES LA FABRICA CENTRAL DE CLIENTES HTTP DE LA APP.
 object RetrofitInstance {
     private const val STEAM_API_BASE_URL = "https://api.steampowered.com/"
     private const val STEAM_STORE_BASE_URL = "https://store.steampowered.com/"
     private val retrofitByBaseUrl = ConcurrentHashMap<String, Retrofit>()
     private val httpClient: OkHttpClient by lazy {
+        // OKHTTP CONFIGURA TIMEOUTS Y DNS PARA QUE LAS LLAMADAS AL WORKER SEAN MAS ESTABLES.
         OkHttpClient.Builder()
             .dns(WorkersDevFallbackDns())
             .connectTimeout(5, TimeUnit.SECONDS)
@@ -24,6 +26,7 @@ object RetrofitInstance {
     }
 
     val steamApi: SteamApiService by lazy {
+        // LAZY SIGNIFICA QUE EL SERVICIO SE CREA SOLO CUANDO SE USA POR PRIMERA VEZ.
         Retrofit.Builder()
             .baseUrl(STEAM_API_BASE_URL)
             .addConverterFactory(GsonConverterFactory.create())
@@ -55,6 +58,7 @@ object RetrofitInstance {
     }
 
     private fun retrofitForBaseUrl(baseUrl: String): Retrofit {
+        // USO CACHE POR BASEURL PARA NO CREAR RETROFIT NUEVO EN CADA LLAMADA.
         val normalizedBaseUrl = baseUrl.ensureTrailingSlash()
         return retrofitByBaseUrl.getOrPut(normalizedBaseUrl) {
             Retrofit.Builder()
@@ -76,6 +80,7 @@ internal class WorkersDevFallbackDns(
     private val workerHosts: Set<String> = setOf("trophychest-igdb-proxy.trophychest.workers.dev")
 ) : Dns {
     override fun lookup(hostname: String): List<InetAddress> {
+        // SI EL DOMINIO DEL WORKER FALLA, INTENTO RESOLVER WORKERS.DEV COMO FALLBACK.
         val systemResult = runCatching { systemDns.lookup(hostname) }
         if (hostname.lowercase() !in workerHosts) {
             return systemResult.getOrThrow()

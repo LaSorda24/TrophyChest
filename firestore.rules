@@ -2,12 +2,13 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // APUNTE: TODAS LAS REGLAS PARTEN DE SABER SI HAY USUARIO AUTENTICADO.
+    // TODAS LAS REGLAS PARTEN DE SABER SI HAY USUARIO AUTENTICADO.
     function signedIn() {
       return request.auth != null;
     }
 
     function isSelf(uid) {
+      // ESTA FUNCION EVITA QUE UN USUARIO EDITE EL PERFIL DE OTRO.
       return signedIn() && request.auth.uid == uid;
     }
 
@@ -24,15 +25,17 @@ service cloud.firestore {
     }
 
     function hasExpectedConnectionId(connectionId) {
+      // EL ID DE LA AMISTAD SE FORMA CON LOS DOS UID PARA QUE NO SE CREEN DUPLICADOS.
       return connectionId == request.resource.data.members.join("_");
     }
 
-    // APUNTE: CADA USUARIO SOLO PUEDE MODIFICAR SU PROPIO PERFIL PUBLICO.
+    // CADA USUARIO SOLO PUEDE MODIFICAR SU PROPIO PERFIL PUBLICO.
     match /users/{uid} {
       allow read: if signedIn();
       allow create: if isSelf(uid)
         && request.resource.data.uid == uid;
       allow update: if isSelf(uid)
+        // DIFF LIMITA QUE CAMPOS SE PUEDEN CAMBIAR DESDE LA APP CLIENTE.
         && request.resource.data.uid == resource.data.uid
         && (
           request.resource.data.friendCode == resource.data.friendCode
@@ -53,10 +56,11 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    // APUNTE: USERNAMES Y FRIENDCODES SON RESERVAS UNICAS PARA BUSCAR AMIGOS.
+    // USERNAMES Y FRIENDCODES SON RESERVAS UNICAS PARA BUSCAR AMIGOS.
     match /usernames/{username} {
       allow read: if signedIn();
       allow create: if signedIn()
+        // SOLO PUEDO RESERVAR UN USERNAME/FRIENDCODE SI AUN NO EXISTE Y APUNTA A MI UID.
         && !exists(/databases/$(database)/documents/usernames/$(username))
         && request.resource.data.uid == request.auth.uid;
       allow update, delete: if false;
@@ -70,12 +74,13 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
-    // APUNTE: CONNECTIONS GUARDA SOLICITUDES, AMISTADES Y RESUMEN DEL ULTIMO MENSAJE.
+    // CONNECTIONS GUARDA SOLICITUDES, AMISTADES Y RESUMEN DEL ULTIMO MENSAJE.
     match /connections/{connectionId} {
       allow get: if isConnectionIdParticipant(connectionId) || isConnectionMember();
       allow list: if isConnectionMember();
 
       allow create: if signedIn()
+        // LA SOLICITUD DE AMISTAD SIEMPRE TIENE 2 MIEMBROS Y EMPIEZA EN PENDING.
         && isNewConnectionMember()
         && request.resource.data.members is list
         && request.resource.data.members.size() == 2
@@ -87,6 +92,7 @@ service cloud.firestore {
 
       allow update: if isConnectionMember() && (
         (
+          // CASO 1, EL RECEPTOR ACEPTA O RECHAZA UNA SOLICITUD PENDIENTE.
           resource.data.status == "pending"
           && resource.data.requestedTo == request.auth.uid
           && request.resource.data.status in ["accepted", "rejected"]
@@ -96,6 +102,7 @@ service cloud.firestore {
         )
         ||
         (
+          // CASO 2, SOLO SE ACTUALIZA LA MARCA DE LEIDO.
           resource.data.status == "accepted"
           && request.resource.data.status == "accepted"
           && request.resource.data.members == resource.data.members
@@ -105,6 +112,7 @@ service cloud.firestore {
         )
         ||
         (
+          // CASO 3, SE ACTUALIZA EL RESUMEN DEL ULTIMO MENSAJE DEL CHAT.
           resource.data.status == "accepted"
           && request.resource.data.status == "accepted"
           && request.resource.data.members == resource.data.members
@@ -121,7 +129,7 @@ service cloud.firestore {
       allow delete: if false;
 
       match /messages/{messageId} {
-        // APUNTE: LOS MENSAJES SOLO LOS LEEN Y CREAN MIEMBROS DE UNA AMISTAD ACEPTADA.
+        // LOS MENSAJES SOLO LOS LEEN Y CREAN MIEMBROS DE UNA AMISTAD ACEPTADA.
         allow read: if signedIn()
           && request.auth.uid in get(/databases/$(database)/documents/connections/$(connectionId)).data.members;
 

@@ -80,7 +80,7 @@ private val ChatBackground = Color(0xFF0F0F0F)
 private val ChatSurface = Color(0xFF1E1E1E)
 private val AccentGold = Color(0xFFF6C453)
 
-// APUNTE: ESTA PANTALLA GESTIONA BUSCAR AMIGOS, SOLICITUDES Y ACCESO AL CHAT.
+// ESTA PANTALLA GESTIONA BUSCAR AMIGOS, SOLICITUDES Y ACCESO AL CHAT.
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AmigosScreen(navController: NavHostController) {

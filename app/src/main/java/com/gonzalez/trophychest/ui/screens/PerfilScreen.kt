@@ -89,10 +89,11 @@ import com.gonzalez.trophychest.ui.theme.SubtleTrack
 import com.gonzalez.trophychest.ui.theme.VisibleOutline
 import kotlinx.coroutines.launch
 
-// APUNTE: PERFIL ENSENA DATOS DEL USUARIO, AMIGOS, JUEGOS GUARDADOS Y RESUMEN DE PROGRESO.
+// PERFIL ENSENA DATOS DEL USUARIO, AMIGOS, JUEGOS GUARDADOS Y RESUMEN DE PROGRESO.
 @Composable
 @OptIn(ExperimentalFoundationApi::class)
 fun PerfilScreen(navController: NavHostController) {
+    // PERFIL NO TIENE VIEWMODEL; COMPOSE GUARDA EL ESTADO Y LOS REPOSITORIOS TRAEN LOS DATOS.
     val pagerState = rememberPagerState(pageCount = { 2 })
     val coroutineScope = rememberCoroutineScope()
     val context = LocalContext.current
@@ -103,6 +104,7 @@ fun PerfilScreen(navController: NavHostController) {
     var syncMessage by remember { mutableStateOf<String?>(null) }
     var friendConnections by remember(currentUser?.uid) { mutableStateOf(emptyList<FriendConnection>()) }
 
+    // ESTOS DATOS SON CACHE LOCAL DE PLATAFORMAS; NO SE LLAMA A INTERNET CADA VEZ QUE ABRO PERFIL.
     val cachedGames = SteamRepository.getCachedGames(context)
     val cachedPlayStationGames = PlayStationRepository.getCachedGames(context)
     val cachedPlayStationTrophyGames = PlayStationRepository.getCachedTrophyGames(context)
@@ -121,6 +123,7 @@ fun PerfilScreen(navController: NavHostController) {
     val friendCode = profile?.friendCode?.takeIf { it.isNotBlank() } ?: "pendiente"
 
     LaunchedEffect(currentUser?.uid) {
+        // OBSERVE CURRENT USER ESCUCHA CAMBIOS EN FIRESTORE Y ACTUALIZA LA UI AUTOMATICAMENTE.
         if (currentUser == null) return@LaunchedEffect
         runCatching {
             UserRepository.observeCurrentUser().collect { latest ->
@@ -132,6 +135,7 @@ fun PerfilScreen(navController: NavHostController) {
     }
 
     LaunchedEffect(currentUser?.uid) {
+        // EL LISTADO DE AMIGOS TAMBIEN ES TIEMPO REAL CON FIRESTORE.
         if (currentUser == null) {
             friendConnections = emptyList()
             return@LaunchedEffect
@@ -146,6 +150,7 @@ fun PerfilScreen(navController: NavHostController) {
     }
 
     DisposableEffect(lifecycleOwner, currentUser?.uid) {
+        // AL VOLVER A PERFIL RECARGO GUARDADOS LOCALES POR SI CAMBIARON EN OTRA PANTALLA.
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
                 savedGames = GameWishlistRepository.getSavedGames(context)

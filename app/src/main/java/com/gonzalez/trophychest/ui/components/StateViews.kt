@@ -16,15 +16,18 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
+
+//GUARDA COMPONENTRES REUTILIZABLES PARA PANTALLAS
+
 @Composable
-fun LoadingStateView(message: String = "Cargando...") {
+fun LoadingStateView(message: String = "Cargando...") {//SI NO RECIBE NINGUN OTRO MENSAJE MUESTRA CARGANDO
     Column(
         modifier = Modifier.fillMaxSize().padding(24.dp),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        CircularProgressIndicator(color = Color.White)
-        Text(
+        CircularProgressIndicator(color = Color.White)//CIRCULO DE CARGA EN EL CENTRO
+        Text( //MENSAJE DE CARGA
             text = message,
             color = Color.LightGray,
             modifier = Modifier.padding(top = 16.dp)
@@ -36,8 +39,9 @@ fun LoadingStateView(message: String = "Cargando...") {
 fun MessageStateView(
     title: String,
     message: String,
-    actionLabel: String? = null,
-    onAction: (() -> Unit)? = null
+    //TEXTO BOTON
+    actionLabel: String? = null,//PUEDE SER NULO
+    onAction: (() -> Unit)? = null//ACCION OPCIONAL AL PULSAR
 ) {
     Column(
         modifier = Modifier.fillMaxSize().padding(24.dp),
@@ -45,17 +49,20 @@ fun MessageStateView(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
+            //TITULO
             text = title,
             color = Color.White,
             fontSize = 20.sp,
             fontWeight = FontWeight.Bold
         )
         Text(
+            //MENSAUJE
             text = message,
             color = Color.LightGray,
             modifier = Modifier.padding(top = 10.dp),
             lineHeight = 20.sp
         )
+        //SI HAY BOTON....
         if (actionLabel != null && onAction != null) {
             Button(
                 onClick = onAction,

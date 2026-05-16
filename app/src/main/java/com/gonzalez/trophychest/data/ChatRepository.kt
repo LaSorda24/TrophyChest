@@ -8,7 +8,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
 
-// APUNTE: EL CHAT USA FIRESTORE EN TIEMPO REAL CON SOLICITUDES DE AMISTAD Y MENSAJES.
+// EL CHAT USA FIRESTORE EN TIEMPO REAL CON SOLICITUDES DE AMISTAD Y MENSAJES.
 object ChatRepository {
     private val db: FirebaseFirestore
         get() = FirebaseFirestore.getInstance()

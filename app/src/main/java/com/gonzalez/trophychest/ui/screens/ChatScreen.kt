@@ -74,7 +74,7 @@ private val OwnBubble = Color(0xFF2B5278)
 private val OtherBubble = Color(0xFF1E1E1E)
 private val SendBlue = Color(0xFF54A7E5)
 
-// APUNTE: CHAT ESCUCHA MENSAJES EN TIEMPO REAL Y SOLO DEJA ESCRIBIR SI LA AMISTAD ESTA ACEPTADA.
+// CHAT ESCUCHA MENSAJES EN TIEMPO REAL Y SOLO DEJA ESCRIBIR SI LA AMISTAD ESTA ACEPTADA.
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChatScreen(navController: NavHostController, connectionId: String) {

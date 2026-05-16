@@ -47,12 +47,12 @@ import com.gonzalez.trophychest.ui.theme.ReadableTertiary
 
 @Composable
 fun TopHeader(
-    searchQuery: String,
-    onSearchQueryChange: (String) -> Unit,
-    onClearSearch: () -> Unit,
-    searchResultsState: RemoteUiState<List<IGDBGame>>,
-    onGameClick: (IGDBGame) -> Unit,
-    onHelpClick: () -> Unit
+    searchQuery: String,//TEXTO BASE
+    onSearchQueryChange: (String) -> Unit,//FUNCION DE BUSCA
+    onClearSearch: () -> Unit,//FUNCION QUE LIMPIA
+    searchResultsState: RemoteUiState<List<IGDBGame>>,//ESTADO DE BUSQUEDA
+    onGameClick: (IGDBGame) -> Unit,//ABRIR JUEGO PULSADO
+    onHelpClick: () -> Unit//BOTON AYUDA
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
         Surface(
@@ -61,43 +61,47 @@ fun TopHeader(
         ) {
             Row(
                 modifier = Modifier
-                    .fillMaxWidth()
+                    .fillMaxWidth()//OCUPE EL MAXIMO
                     .statusBarsPadding()
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                    .padding(horizontal = 16.dp, vertical = 12.dp),//MARGENES INTERNOS
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                //ICONO DE APP
                 Image(
                     painter = painterResource(id = R.drawable.logo_principal),
                     contentDescription = "Logo de TrophyChest",
                     modifier = Modifier
                         .height(42.dp)
                         .wrapContentWidth(),
-                    contentScale = ContentScale.Fit
+                    contentScale = ContentScale.Fit//ENCAJA SIN RECORTARSE
                 )
-
+                //LLAMAMOS A BARRA DE BUSQUEDA
                 SearchField(
-                    query = searchQuery,
-                    onQueryChange = onSearchQueryChange,
-                    onClearSearch = onClearSearch,
+                    query = searchQuery,//LE PASA EL TEXTO
+                    onQueryChange = onSearchQueryChange,//AVISA CUANDO ESCRIBIRMOS
+                    onClearSearch = onClearSearch,//LIMPIA AL CERRAR
                     modifier = Modifier
                         .weight(1f)
                         .padding(horizontal = 12.dp)
                 )
 
+                //BOTON DE AYUDA
                 IconButton(onClick = onHelpClick) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.HelpOutline,
                         contentDescription = "Abrir ayuda",
                         tint = Color.LightGray,
                         modifier = Modifier.size(28.dp)
+
+
                     )
                 }
             }
         }
 
         if (searchQuery.trim().isNotBlank()) {
-            SearchResultsDropdown(
-                query = searchQuery.trim(),
+            SearchResultsDropdown(//FUNCION PARA DESPLESGAR DE ABAJO
+                query = searchQuery.trim(),//PODRIA ELIMINARSE------------------------------------------------
                 state = searchResultsState,
                 onGameClick = onGameClick
             )
@@ -105,31 +109,34 @@ fun TopHeader(
     }
 }
 
+//BARRA DE BUSQUEDA
 @Composable
 private fun SearchField(
     query: String,
-    onQueryChange: (String) -> Unit,
+    onQueryChange: (String) -> Unit,//------------QUE DEVUELVE-------------------
     onClearSearch: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    //FONDO DE BARRA
     Surface(
         modifier = modifier.height(56.dp),
         color = Color(0xFF2A2A2A),
         shape = RoundedCornerShape(28.dp)
     ) {
+        //TEXTO
         TextField(
             value = query,
-            onValueChange = onQueryChange,
+            onValueChange = onQueryChange,//AVISA CUANDO ESCRIBIMOS
             modifier = Modifier.fillMaxSize(),
             singleLine = true,
             textStyle = LocalTextStyle.current.copy(
                 fontSize = 15.sp,
                 lineHeight = 20.sp
             ),
-            placeholder = {
+            placeholder = {//TEXTO DE BASE
                 Text("Buscar...", color = ReadableTertiary, fontSize = 14.sp)
             },
-            leadingIcon = {
+            leadingIcon = {//ICONO DE LUPA
                 Icon(
                     imageVector = Icons.Default.Search,
                     contentDescription = null,
@@ -137,7 +144,7 @@ private fun SearchField(
                     modifier = Modifier.size(20.dp)
                 )
             },
-            trailingIcon = {
+            trailingIcon = {//ICONO DE LIMPIAR
                 if (query.isNotBlank()) {
                     IconButton(onClick = onClearSearch) {
                         Icon(
@@ -163,21 +170,24 @@ private fun SearchField(
     }
 }
 
+
+//DESPLAGABLE CON ESTADO DE BUSQUEDA
 @Composable
 private fun SearchResultsDropdown(
     query: String,
-    state: RemoteUiState<List<IGDBGame>>,
+    state: RemoteUiState<List<IGDBGame>>,//LISTA DE JUEGOS DE IGDB
     onGameClick: (IGDBGame) -> Unit
 ) {
-    Surface(
+    Surface(//SUPERFICIE DE BUSQUEDA
         modifier = Modifier.fillMaxWidth(),
         color = Color(0xFF111111),
         shadowElevation = 8.dp
     ) {
         when (state) {
-            RemoteUiState.Loading -> SearchDropdownMessage("Buscando...", isLoading = true)
-            is RemoteUiState.Error -> SearchDropdownMessage(state.message)
-            is RemoteUiState.Empty -> SearchDropdownMessage(state.message)
+            RemoteUiState.Loading -> SearchDropdownMessage("Buscando...", isLoading = true)//SI ESTA CARGANDO
+            is RemoteUiState.Error -> SearchDropdownMessage(state.message)//SI HAY ALGUN ERROR
+            is RemoteUiState.Empty -> SearchDropdownMessage(state.message)//SI NO HAY NADA
+            //SI FUNCIONA...
             is RemoteUiState.Success -> LazyColumn(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -186,7 +196,7 @@ private fun SearchResultsDropdown(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 items(state.data, key = { it.id }) { game ->
-                    SearchResultRow(
+                    SearchResultRow(//LLAMAMOS A LA FILA DE BUSQUEDA DE ABAJO
                         game = game,
                         onClick = { onGameClick(game) }
                     )
@@ -196,6 +206,7 @@ private fun SearchResultsDropdown(
     }
 }
 
+//MENSAJE DE LA BARRA DE BUSQUEDA
 @Composable
 private fun SearchDropdownMessage(
     message: String,
@@ -208,7 +219,7 @@ private fun SearchDropdownMessage(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.Center
     ) {
-        if (isLoading) {
+        if (isLoading) { //SI ESTA PENSANDO
             CircularProgressIndicator(
                 color = Color.White,
                 modifier = Modifier.size(18.dp),
@@ -216,7 +227,7 @@ private fun SearchDropdownMessage(
             )
             Spacer(Modifier.width(10.dp))
         }
-        Text(
+        Text(//MENSAJE DE BASE
             text = message.ifBlank { "Empieza a escribir para buscar juegos." },
             color = ReadableSecondary,
             fontSize = 13.sp,
@@ -225,17 +236,18 @@ private fun SearchDropdownMessage(
     }
 }
 
+//FILA DE RESULTADO
 @Composable
 private fun SearchResultRow(
     game: IGDBGame,
     onClick: () -> Unit
 ) {
-    val platformsLabel = if (game.platforms.isEmpty()) {
+    val platformsLabel = if (game.platforms.isEmpty()) { //TEXTO DE PLATAFORMAS
         "Sin plataformas disponibles"
     } else {
-        game.platforms.joinToString(separator = " | ")
+        game.platforms.joinToString(separator = " | ")//SI TIENE  VARIAS LAS UNE
     }
-
+    //CREAMOS UNA FILA
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -244,20 +256,21 @@ private fun SearchResultRow(
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Surface(
+        Surface( //CONTENEDOR DE PORTADA
             modifier = Modifier.size(width = 52.dp, height = 68.dp),
             shape = RoundedCornerShape(8.dp),
             color = Color(0xFF202833)
         ) {
-            FallbackAsyncImage(
+            FallbackAsyncImage( //PORTADA
                 imageUrls = listOf(game.coverUrl),
                 contentDescription = game.name,
                 contentScale = ContentScale.Crop,
-                placeholderLabel = "IGDB"
+                placeholderLabel = "IGDB"//-------------------ESTO COMO SE VE ?
             )
         }
-
+        //INFO DEL JUEGO
         Column(modifier = Modifier.weight(1f)) {
+            //TITULO
             Text(
                 text = game.name,
                 color = Color.White,
@@ -266,6 +279,7 @@ private fun SearchResultRow(
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis
             )
+            //PLATAFORMAS
             Text(
                 text = platformsLabel,
                 color = ReadableSecondary,

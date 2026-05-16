@@ -53,7 +53,7 @@ import com.gonzalez.trophychest.ui.components.RemoteUiState
 import com.gonzalez.trophychest.ui.theme.ReadableSecondary
 import com.gonzalez.trophychest.ui.theme.ReadableTertiary
 
-// APUNTE: CATEGORIA USA EL SLUG DE NAVEGACION PARA PEDIR A IGDB JUEGOS DE UN GENERO.
+// CATEGORIA USA EL SLUG DE NAVEGACION PARA PEDIR A IGDB JUEGOS DE UN GENERO.
 @Composable
 fun CategoriaScreen(navController: NavHostController, genero: String) {
     val context = LocalContext.current

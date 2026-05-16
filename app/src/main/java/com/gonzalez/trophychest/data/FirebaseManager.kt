@@ -15,14 +15,18 @@ data class GoogleAuthResult(
     val isNewUser: Boolean
 )
 
+// ESTE OBJECT ES UN SINGLETON; TODA LA APP USA LA MISMA PUERTA DE ENTRADA A FIREBASE AUTH.
 object FirebaseManager {
+    // CURRENTUSER ES LA SESION ACTUAL; SI ES NULL, NADIE HA INICIADO SESION.
     val currentUser: FirebaseUser?
         get() = runCatching { auth().currentUser }.getOrNull()
 
     suspend fun login(email: String, password: String): Result<FirebaseUser> {
+        // SUSPEND SIGNIFICA QUE SE LLAMA DESDE CORRUTINA PORQUE FIREBASE TRABAJA EN RED.
         return runCatching {
             val user = auth().signInWithEmailAndPassword(email.trim(), password).await().user
                 ?: error("No se pudo recuperar el usuario autenticado.")
+            // DESPUES DEL LOGIN ME ASEGURO DE QUE EXISTE EL DOCUMENTO DEL USUARIO EN FIRESTORE.
             UserRepository.ensureUserDocument(user)
             user
         }.mapError()
@@ -30,12 +34,14 @@ object FirebaseManager {
 
     suspend fun register(email: String, password: String, username: String): Result<FirebaseUser> {
         return runCatching {
+            // PRIMERO VALIDO EL USERNAME Y LUEGO CREO AUTH + DOCUMENTO DE FIRESTORE.
             ChatValidation.requireValidUsername(username)
             val user = auth().createUserWithEmailAndPassword(email.trim(), password).await().user
                 ?: error("No se pudo crear la cuenta.")
             try {
                 UserRepository.createUserDocument(user, username)
             } catch (throwable: Throwable) {
+                // SI FALLA FIRESTORE, BORRO EL USUARIO DE AUTH PARA NO DEJAR UNA CUENTA A MEDIAS.
                 runCatching { user.delete().await() }
                 throw throwable
             }
@@ -45,6 +51,7 @@ object FirebaseManager {
 
     suspend fun loginWithGoogle(idToken: String, username: String? = null): Result<GoogleAuthResult> {
         return runCatching {
+            // GOOGLE DEVUELVE UN TOKEN; FIREBASE LO CONVIERTE EN UNA SESION REAL.
             val credential = GoogleAuthProvider.getCredential(idToken, null)
             val authResult = auth().signInWithCredential(credential).await()
             val user = authResult.user
@@ -52,6 +59,7 @@ object FirebaseManager {
             val isNewUser = authResult.additionalUserInfo?.isNewUser == true
 
             if (isNewUser) {
+                // SI ES USUARIO NUEVO, OBLIGO A TENER USERNAME PARA PODER CREAR PERFIL PUBLICO.
                 if (username.isNullOrBlank()) {
                     runCatching { user.delete().await() }
                     runCatching { auth().signOut() }
@@ -91,6 +99,7 @@ object FirebaseManager {
     }
 
     private fun auth(): FirebaseAuth {
+        // ESTA FUNCION CENTRALIZA FIREBASEAUTH PARA CAPTURAR ERRORES DE CONFIGURACION.
         return runCatching { FirebaseAuth.getInstance() }
             .getOrElse { throwable ->
                 throw IllegalStateException(
@@ -101,6 +110,7 @@ object FirebaseManager {
     }
 
     private fun <T> Result<T>.mapError(): Result<T> {
+        // MAPERROR TRADUCE ERRORES TECNICOS DE FIREBASE A MENSAJES ENTENDIBLES PARA LA APP.
         return exceptionOrNull()?.let { Result.failure(mapFirebaseException(it)) } ?: this
     }
 

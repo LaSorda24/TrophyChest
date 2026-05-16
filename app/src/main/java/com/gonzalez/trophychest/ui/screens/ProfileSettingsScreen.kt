@@ -96,7 +96,7 @@ private data class PlayStationDialogState(
     val isLoading: Boolean = false
 )
 
-// APUNTE: AJUSTES PERMITE CAMBIAR PERFIL Y VINCULAR/DESVINCULAR STEAM O PLAYSTATION.
+// AJUSTES PERMITE CAMBIAR PERFIL Y VINCULAR/DESVINCULAR STEAM O PLAYSTATION.
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileSettingsScreen(navController: NavHostController) {
@@ -106,6 +106,7 @@ fun ProfileSettingsScreen(navController: NavHostController) {
         ?.takeIf { it.isNotBlank() }
         ?: "Sin correo vinculado"
 
+    // ESTAS VARIABLES SON EL ESTADO DE LA PANTALLA. AL CAMBIAR UNA, COMPOSE REDIBUJA LA UI.
     var profile by remember { mutableStateOf<User?>(null) }
     var username by remember { mutableStateOf("") }
     var selectedAvatar by remember { mutableIntStateOf(UserDefaults.MIN_IMAGE_ID) }
@@ -121,6 +122,7 @@ fun ProfileSettingsScreen(navController: NavHostController) {
     }
 
     LaunchedEffect(Unit) {
+        // LAUNCHEDEFFECT ARRANCA LA ESCUCHA DEL PERFIL SOLO CUANDO ENTRA LA PANTALLA.
         UserRepository.observeCurrentUser().collect { latest ->
             profile = latest
             latest?.let {
@@ -211,6 +213,7 @@ fun ProfileSettingsScreen(navController: NavHostController) {
 
                         isSaving = true
                         scope.launch {
+                            // UPDATEUSERNAME VA A FIRESTORE; POR ESO LO LANZO EN CORRUTINA.
                             runCatching { UserRepository.updateUsername(username) }
                                 .onSuccess {
                                     profile = it
@@ -269,6 +272,7 @@ fun ProfileSettingsScreen(navController: NavHostController) {
                     onClick = {
                         isSaving = true
                         scope.launch {
+                            // GUARDO SOLO IDS DE AVATAR/BANNER, NO ARCHIVOS DE IMAGEN.
                             runCatching {
                                 UserRepository.updateProfileImages(selectedAvatar, selectedBanner)
                             }.onSuccess {
@@ -295,6 +299,7 @@ fun ProfileSettingsScreen(navController: NavHostController) {
                     actionLabel = if (linkedAccount == null) "Vincular" else "Desvincular",
                     icon = Icons.Default.Link,
                     onClick = {
+                        // VINCULAR STEAM ABRE DIALOGO; DESVINCULAR BORRA CACHE LOCAL DE ESA PLATAFORMA.
                         if (linkedAccount == null) {
                             showSteamDialog = true
                         } else {
@@ -312,6 +317,7 @@ fun ProfileSettingsScreen(navController: NavHostController) {
                     enabled = !isSaving,
                     onClick = {
                         message = null
+                        // PLAYSTATION NECESITA PROXY; SI NO HAY URL CONFIGURADA, NO INTENTO VINCULAR.
                         if (!PlayStationRepository.hasProxyEndpoint()) {
                             playStationDialogState = PlayStationDialogState(
                                 message = PlayStationRepository.setupMessage()
@@ -366,6 +372,7 @@ fun ProfileSettingsScreen(navController: NavHostController) {
                 showSteamDialog = false
                 isSaving = true
                 scope.launch {
+                    // IMPORTLIBRARY CONTACTA CON STEAM Y GUARDA LOS JUEGOS EN CACHE LOCAL.
                     message = when (val result = SteamRepository.importLibrary(context, input)) {
                         SteamSyncResult.MissingApiKey -> SteamRepository.steamSetupMessage()
                         is SteamSyncResult.Failure -> result.message
@@ -392,6 +399,7 @@ fun ProfileSettingsScreen(navController: NavHostController) {
                     isLoading = true
                 )
                 scope.launch {
+                    // EL NPSSO SE ENVIA AL PROXY, Y EL REPOSITORIO DEVUELVE CUENTA/JUEGOS/TROFEOS.
                     playStationDialogState = when (val result = PlayStationRepository.linkWithNpsso(context, npsso)) {
                         PlayStationSyncResult.MissingProxyEndpoint -> PlayStationDialogState(
                             message = PlayStationRepository.setupMessage()

@@ -53,9 +53,9 @@ fun TrophyChestTheme(
     dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
-    val colorScheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val context = LocalContext.current
+    val colorScheme = when {//ELEGIMOS PALETA DE COLORES
+        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {//EN CASO DE COLOR DIAMMICO O ANDROID 12`+
+            val context = LocalContext.current//CALCULA COLORES DINAMICOS
             if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
         }
 
@@ -63,9 +63,9 @@ fun TrophyChestTheme(
         else -> LightColorScheme
     }
 
-    MaterialTheme(
+    MaterialTheme(//APLICA MATERIAL 3 AL CONTENIDO
         colorScheme = colorScheme,
-        typography = Typography,
-        content = content
+        typography = Typography,//APLICA TIPOGRAFIA
+        content = content//MUESTRA CONTENIDO
     )
 }

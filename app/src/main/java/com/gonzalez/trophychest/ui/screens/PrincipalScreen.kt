@@ -70,7 +70,7 @@ private val TrophySurface = Color(0xFF1A1A1A)
 private val TrophySurfaceElevated = Color(0xFF242424)
 private val TrophySurfaceMuted = Color(0xFF303030)
 
-// APUNTE: PANTALLA DE INICIO; UNE JUEGOS RECIENTES Y CALENDARIO DE ESTRENOS.
+// PANTALLA DE INICIO; UNE JUEGOS RECIENTES Y CALENDARIO DE ESTRENOS.
 @Composable
 fun PrincipalScreen(navController: NavHostController) {
     val context = LocalContext.current

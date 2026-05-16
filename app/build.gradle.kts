@@ -7,65 +7,44 @@ plugins {
     alias(libs.plugins.google.services) // AQUI ACTIVO FIREBASE PARA LOGIN Y BASE DE DATOS
 }
 
-// AQUI LEO LAS CLAVES LOCALES SIN SUBIRLAS AL REPOSITORIO
+// CREAMOS UN OBJETO VACIO PARA GUARDAR LOS CODIGOS
 val localProperties = Properties().apply {
-    val localPropertiesFile = rootProject.file("local.properties")
-    if (localPropertiesFile.exists()) {
-        localPropertiesFile.inputStream().use(::load)
+    val localPropertiesFile = rootProject.file("local.properties")//BUSCA EL ARCHIVO LOCAL.PROPERTIES
+    if (localPropertiesFile.exists()) {//SI EXISTE
+        localPropertiesFile.inputStream().use(::load)//LO CARGA EN EL OBJETO VACIO
     }
 }
 
-fun localOrGradleProperty(vararg names: String): String {
-    for (name in names) {
-        val gradleValue = providers.gradleProperty(name).orNull
-        if (gradleValue != null) {
-            return gradleValue
-        }
-
+//FUNCION PARA BUSCAR NOMBRES
+//LE DAS UN NOMBRE Y BUSCA EN LOCAL.PROPERTIES
+fun localProperty(name: String): String {
         val localValue = localProperties.getProperty(name)
         if (localValue != null) {
-            return localValue
+            return localValue //DEVUELVE VALOE ENCONTRADO
         }
-    }
-
+//SI NO LO ENCUENTRA DEVUELVE UN STRING VACIO
     return ""
 }
 
+//FUNCION PARA QUE COMPRENDA LA CADENA DE TEXTO
+//Y NO GENERE CONFUSIONES , POR EJEMPLO \U O COMILLAS
 fun String.asBuildConfigString(): String {
     return replace("\\", "\\\\").replace("\"", "\\\"")
 }
 
-val steamApiKey = localOrGradleProperty(
-    "STEAM_API_KEY",
-    "steamApiKey",
-    "steam.api.key"
-)
+//VARIABLE PARA LA CLAVE DE STEAM
+val steamApiKey = localProperty("STEAM_API_KEY")
+//GUARDA LA DIRECCION WEB DE IGBD PARA EL CALENDARIO
+val releaseCalendarBaseUrl = localProperty("RELEASE_CALENDAR_BASE_URL")
+//GUARDA LA DIRECCION PERO PARA EL RESTO DE COSAS CON OGDB
+val igdbProxyBaseUrl = localProperty("RELEASE_CALENDAR_BASE_URL")
 
-val releaseCalendarBaseUrl = localOrGradleProperty(
-    "RELEASE_CALENDAR_BASE_URL",
-    "releaseCalendarBaseUrl",
-    "release.calendar.base.url"
-)
+//PLAY STATION USA LA DE IGDB PARA QUE PUEDA FUNCIONAR
+//DENTRO DEL PROXY DE IGBD TENEMOS DIRECCIONES DE PSN
+val playStationProxyBaseUrl = releaseCalendarBaseUrl
 
-val igdbProxyBaseUrl = localOrGradleProperty(
-    "IGDB_PROXY_BASE_URL",
-    "igdbProxyBaseUrl",
-    "igdb.proxy.base.url",
-    "RELEASE_CALENDAR_BASE_URL",
-    "releaseCalendarBaseUrl",
-    "release.calendar.base.url"
-)
 
-val configuredPlayStationProxyBaseUrl = localOrGradleProperty(
-    "PLAYSTATION_PROXY_BASE_URL",
-    "playStationProxyBaseUrl",
-    "playstation.proxy.base.url"
-)
-
-val playStationProxyBaseUrl = configuredPlayStationProxyBaseUrl.ifBlank {
-    igdbProxyBaseUrl.ifBlank { releaseCalendarBaseUrl }
-}
-
+//CONFUIGURACION ANDROID
 android {
     namespace = "com.gonzalez.trophychest"
     compileSdk = 36
@@ -77,6 +56,8 @@ android {
         versionCode = 2
         versionName = "1.1"
 
+
+        //CREAMOS LOS BUIILDCONFIG
         buildConfigField("String", "STEAM_API_KEY", "\"${steamApiKey.asBuildConfigString()}\"")
         buildConfigField("String", "RELEASE_CALENDAR_BASE_URL", "\"${releaseCalendarBaseUrl.asBuildConfigString()}\"")
         buildConfigField("String", "IGDB_PROXY_BASE_URL", "\"${igdbProxyBaseUrl.asBuildConfigString()}\"")
@@ -108,10 +89,10 @@ android {
 
 dependencies {
     // FIREBASE PARA CUENTAS, PERFIL Y DATOS DEL USUARIO
-    implementation(platform(libs.firebase.bom))
-    implementation(libs.firebase.auth)
-    implementation(libs.firebase.firestore)
-    implementation(libs.play.services.auth)
+    implementation(platform(libs.firebase.bom))//BOM PARA SINCRONIZAR
+    implementation(libs.firebase.auth)//AUTENTICACION
+    implementation(libs.firebase.firestore)//FIRESTORE PARA BDD
+    implementation(libs.play.services.auth)//AUTENTICACION DE GOOGLE
     implementation(libs.kotlinx.coroutines.play.services)
 
     // DISENO Y UTILIDADES DE LA INTERFAZ

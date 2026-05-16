@@ -38,7 +38,7 @@ fun GameCard(name: String, progress: Float, platform: String) {
             modifier = Modifier.padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // AQUI DEJO EL HUECO DONDE VA LA IMAGEN DEL JUEGO
+            //CONTENEDOR DE LA IMAGEN
             Surface(
                 modifier = Modifier.size(60.dp),
                 color = Color(0xFF3A3A3A),
@@ -47,14 +47,14 @@ fun GameCard(name: String, progress: Float, platform: String) {
 
             Spacer(modifier = Modifier.width(16.dp))
 
-            // AQUI MUESTRO EL NOMBRE DEL JUEGO Y SU PLATAFORMA
+            //NOMBRE DEL JUEGO Y SU PLATAFORMA
             Column(modifier = Modifier.weight(1f)) {
                 Text(text = name, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
                 Text(text = platform, color = ReadableSecondary, fontSize = 14.sp)
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // ESTA BARRA ME SIRVE PARA VER EL AVANCE DE TROFEOS DE UN VISTAZO
+                // PROGRESO DE TROFEOS
                 LinearProgressIndicator(
                     progress = { progress },
                     modifier = Modifier.fillMaxWidth().height(6.dp),
@@ -66,7 +66,7 @@ fun GameCard(name: String, progress: Float, platform: String) {
 
             Spacer(modifier = Modifier.width(8.dp))
 
-            // AQUI ENSENO EL PORCENTAJE PARA QUE NO HAYA QUE INTERPRETAR SOLO LA BARRA
+            // POCENTAJE
             Text(
                 text = "${(progress * 100).toInt()}%",
                 color = Color(0xFFFFD700),

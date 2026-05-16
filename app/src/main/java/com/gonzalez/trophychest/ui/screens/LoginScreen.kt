@@ -66,53 +66,63 @@ private val LoginOutline = Color(0xFFB8B8B8)
 private val LoginWarning = Color(0xFFFFCC80)
 private val LoginError = Color(0xFFFF8A80)
 
-// APUNTE: LOGIN DECIDE SI EL USUARIO ENTRA CON EMAIL O CON GOOGLE Y DESPUES CREA SU PERFIL.
+//LOGIN  EMAIL O CON GOOGLE
 @Composable
 fun LoginScreen(navController: NavHostController) {
     val context = LocalContext.current
-    val coroutineScope = rememberCoroutineScope()
-    val googleClientId = remember(context) { resolveGoogleWebClientId(context) }
-    val googleSignInClient = remember(googleClientId) {
+    val coroutineScope = rememberCoroutineScope()//SCOPE PARA LOGIN Y FIREBASE ASINCRONA
+    val googleClientId = remember(context) { resolveGoogleWebClientId(context) }//CLIENTE DE GOOGLE
+    val googleSignInClient = remember(googleClientId) {//CLIENTE LOGGIN
         if (googleClientId.isNotBlank()) buildGoogleSignInClient(context, googleClientId) else null
     }
 
+    //DATOS DEL USUARIO
+    // AQUI NO USO VIEWMODEL. EL ESTADO DE ESTA PANTALLA SE GUARDA EN COMPOSE CON REMEMBER/SAVEABLE.
     var email by rememberSaveable { mutableStateOf("") }
     var password by rememberSaveable { mutableStateOf("") }
     var username by rememberSaveable { mutableStateOf("") }
+
+    //LOGIN O REGISTRO
+    // ISREGISTERMODE DECIDE SI EL MISMO FORMULARIO FUNCIONA COMO LOGIN O COMO CREAR CUENTA.
     var isRegisterMode by rememberSaveable { mutableStateOf(false) }
     var isLoading by rememberSaveable { mutableStateOf(false) }
-    var errorMessage by rememberSaveable { mutableStateOf<String?>(null) }
+    var errorMessage by rememberSaveable { mutableStateOf<String?>(null) }//ERROR AL UNIRSE
 
+
+    //METODO PARA QUE NO SALTE EL LOGIN
     LaunchedEffect(Unit) {
         if (FirebaseManager.currentUser != null) {
-            navigateToPrincipal(navController)
+            navigateToPrincipal(navController)//SI ESTA LOGUEADO SE VA A PRINCIPAL
         }
     }
-
+    //PANTALLA DE GOOGLE
+    // ESTE LAUNCHER ABRE LA PANTALLA DE GOOGLE Y RECIBE EL RESULTADO CUANDO EL USUARIO VUELVE.
     val googleLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
         try {
             val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
-            val account = task.getResult(ApiException::class.java)
+            val account = task.getResult(ApiException::class.java)//RECOGE LA INFO DEL USUARIO DE GOOGLE
+            //COMPROBACION
             handleGoogleAccountResult(
                 account = account,
-                onError = {
+                onError = {             //CONDICION SI FALLA
                     errorMessage = it
                     isLoading = false
                 },
-                onSuccess = { idToken ->
+                onSuccess = { idToken ->//CONDICION SI FUNCIONA
+                    // USAMOS CORRUTINA PORQUE FIREBASE TARDA Y NO QUEREMOS BLOQUEAR LA INTERFAZ.
                     coroutineScope.launch {
-                        val authResult = if (isRegisterMode) {
+                        val authResult = if (isRegisterMode) { //SI ESTA EN REGISTRO REQUIERE DE EL NOMBRE TAMBIEN
                             FirebaseManager.loginWithGoogle(idToken, username)
                         } else {
-                            FirebaseManager.loginWithGoogle(idToken)
+                            FirebaseManager.loginWithGoogle(idToken) //INICIO NORMAL
                         }
 
                         authResult
-                            .onSuccess { navigateToPrincipal(navController) }
+                            .onSuccess { navigateToPrincipal(navController) }//SI FUNCIONA SE VA A PRINCIPAL
                             .onFailure { error ->
-                                errorMessage = error.message ?: "No se pudo iniciar sesion con Google."
+                                errorMessage = error.message ?: "No se pudo iniciar sesion con Google."//SI FALLA SALTA ESTE MENSAJE
                             }
                         isLoading = false
                     }
@@ -124,6 +134,8 @@ fun LoginScreen(navController: NavHostController) {
         }
     }
 
+
+    //DISEÑO DE LA PANTALLA
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -150,12 +162,13 @@ fun LoginScreen(navController: NavHostController) {
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
                 Text(
-                    text = if (isRegisterMode) "Crear cuenta" else "Iniciar sesion",
+                    text = if (isRegisterMode) "Crear cuenta" else "Iniciar sesion", //CAMBIA EL TITULO SEGUN SEA TRUWE O FALSE
                     style = MaterialTheme.typography.headlineMedium,
                     color = Color.White,
                     fontWeight = FontWeight.Black
                 )
 
+                //CORREO
                 OutlinedTextField(
                     value = email,
                     onValueChange = {
@@ -167,6 +180,7 @@ fun LoginScreen(navController: NavHostController) {
                     singleLine = true
                 )
 
+                //CONTRASEÑA
                 OutlinedTextField(
                     value = password,
                     onValueChange = {
@@ -179,6 +193,7 @@ fun LoginScreen(navController: NavHostController) {
                     visualTransformation = PasswordVisualTransformation()
                 )
 
+                //SI REGITRO ES TRUE MUESTRA PARA PONER EL NOMRBE
                 if (isRegisterMode) {
                     OutlinedTextField(
                         value = username,
@@ -189,19 +204,19 @@ fun LoginScreen(navController: NavHostController) {
                         modifier = Modifier.fillMaxWidth(),
                         label = { Text("Nombre de usuario") },
                         singleLine = true,
-                        isError = username.isNotBlank() && ChatValidation.usernameError(username) != null,
+                        isError = username.isNotBlank() && ChatValidation.usernameError(username) != null,//FALLA SI NO CUMPLE LAS REGLAS DEL NOMBRE
                         supportingText = {
                             val usernameError = ChatValidation.usernameError(username)
                             if (usernameError != null && username.isNotBlank()) {
                                 Text(usernameError)
                             } else {
-                                Text("3-20 caracteres: letras, numeros y guion bajo.")
+                                Text("3-20 caracteres: letras, numeros y guion bajo.")//MUETRA MENSAJE DE ERROR
                             }
                         }
                     )
                 }
 
-                errorMessage?.let {
+                errorMessage?.let {//MODIFICA EL TEXTO DE ERROR
                     Text(
                         text = it,
                         color = LoginError,
@@ -209,24 +224,19 @@ fun LoginScreen(navController: NavHostController) {
                     )
                 }
 
-                if (googleClientId.isBlank()) {
-                    Text(
-                        text = "Falta google-services.json o el Web Client ID de Firebase. El acceso por correo ya queda preparado.",
-                        color = LoginWarning,
-                        fontSize = 13.sp
-                    )
-                }
-
+                //BOTON PARA LOGUEARSE
                 Button(
                     onClick = {
-                        val validationMessage = validateCredentials(email, password, username, isRegisterMode)
+                        val validationMessage = validateCredentials(email, password, username, isRegisterMode) //VALIDA TODOS LOS CAMPOS Y SI ESTA O NO EN REGISTRO
                         if (validationMessage != null) {
-                            errorMessage = validationMessage
-                            return@Button
+                            errorMessage = validationMessage//SI HAY ERROR
+                            return@Button//VUELVE ATRAS
                         }
 
+                        //FUNCIONA
                         isLoading = true
                         errorMessage = null
+                        // LA PANTALLA SOLO PIDE LOGIN/REGISTRO; LA LOGICA REAL ESTA EN FIREBASEMANAGER.
                         coroutineScope.launch {
                             val authResult = if (isRegisterMode) {
                                 FirebaseManager.register(email, password, username)
@@ -317,6 +327,7 @@ private fun validateCredentials(
     username: String,
     isRegisterMode: Boolean
 ): String? {
+    // VALIDAMOS ANTES DE LLAMAR A FIREBASE PARA EVITAR PETICIONES INUTILES Y DAR MENSAJES CLAROS.
     return when {
         email.isBlank() || password.isBlank() -> "Completa el correo y la contrasena."
         !Patterns.EMAIL_ADDRESS.matcher(email.trim()).matches() -> "Introduce un correo valido."
@@ -327,6 +338,7 @@ private fun validateCredentials(
 }
 
 private fun navigateToPrincipal(navController: NavHostController) {
+    // POPUPTO LIMPIA LA PILA PARA QUE AL DAR ATRAS NO VUELVA AL SPLASH/LOGIN.
     navController.navigate(Screen.Principal.route) {
         popUpTo("video_splash") { inclusive = true }
         launchSingleTop = true
