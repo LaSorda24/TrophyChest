@@ -40,7 +40,7 @@ import kotlinx.coroutines.delay
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
-        // ONCREATE ES EL PRIMER PUNTO REAL DE LA APP ANDROID; AQUI MONTO COMPOSE.
+
         installSplashScreen()
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -58,8 +58,10 @@ class MainActivity : ComponentActivity() {
 fun MiApp() {
     // ESTA FUNCION HACE DE "RAIZ" DE LA UI. NO ES VIEWMODEL; SOLO COORDINA ESTADO GLOBAL DE PANTALLA.
     val navController = rememberNavController()//CONTROLLER PARA LA NAVEGACION
+    //VARIABLE PARA SABER LA PANTALLA ACTUAL
     val navBackStackEntry by navController.currentBackStackEntryAsState()//REVISA LA PANTALLA ACTUAL
     val currentRoute = navBackStackEntry?.destination?.route//GUARDA LA RUTA EN TEXTO
+    //VARIABLE PARA EL TEXTO DE BUSQUEDA
     var searchQuery by rememberSaveable { mutableStateOf("") }//GUARDA CON SAVEABLE PARA SOBREVIVIR A CAMBIOS
 
     //VARIABLES PARA DETECTAR PANTALLAS

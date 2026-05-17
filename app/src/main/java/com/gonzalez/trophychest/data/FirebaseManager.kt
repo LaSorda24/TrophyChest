@@ -15,9 +15,9 @@ data class GoogleAuthResult(
     val isNewUser: Boolean
 )
 
-// ESTE OBJECT ES UN SINGLETON; TODA LA APP USA LA MISMA PUERTA DE ENTRADA A FIREBASE AUTH.
+// ESTE OBJECT ES UN SINGLETON TODA LA APP USA LA MISMA PUERTA DE ENTRADA A FIREBASE AUTH.
 object FirebaseManager {
-    // CURRENTUSER ES LA SESION ACTUAL; SI ES NULL, NADIE HA INICIADO SESION.
+    // CURRENTUSER ES LA SESION ACTUAL SI ES NULL, NADIE HA INICIADO SESION.
     val currentUser: FirebaseUser?
         get() = runCatching { auth().currentUser }.getOrNull()
 
@@ -54,8 +54,7 @@ object FirebaseManager {
             // GOOGLE DEVUELVE UN TOKEN; FIREBASE LO CONVIERTE EN UNA SESION REAL.
             val credential = GoogleAuthProvider.getCredential(idToken, null)
             val authResult = auth().signInWithCredential(credential).await()
-            val user = authResult.user
-                ?: error("No se pudo iniciar sesion con Google.")
+            val user = authResult.user ?: error("No se pudo iniciar sesion con Google.")
             val isNewUser = authResult.additionalUserInfo?.isNewUser == true
 
             if (isNewUser) {
@@ -77,15 +76,6 @@ object FirebaseManager {
             }
 
             GoogleAuthResult(user = user, isNewUser = isNewUser)
-        }.mapError()
-    }
-
-    suspend fun createUserDocumentForNewRegistration(
-        user: FirebaseUser,
-        username: String
-    ): Result<User> {
-        return runCatching {
-            UserRepository.createUserDocument(user, username)
         }.mapError()
     }
 

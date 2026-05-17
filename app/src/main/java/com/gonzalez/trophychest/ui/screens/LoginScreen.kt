@@ -70,7 +70,7 @@ private val LoginError = Color(0xFFFF8A80)
 @Composable
 fun LoginScreen(navController: NavHostController) {
     val context = LocalContext.current
-    val coroutineScope = rememberCoroutineScope()//SCOPE PARA LOGIN Y FIREBASE ASINCRONA
+    val coroutineScope = rememberCoroutineScope()//SCOPE PARA LOGIN
     val googleClientId = remember(context) { resolveGoogleWebClientId(context) }//CLIENTE DE GOOGLE
     val googleSignInClient = remember(googleClientId) {//CLIENTE LOGGIN
         if (googleClientId.isNotBlank()) buildGoogleSignInClient(context, googleClientId) else null
@@ -89,12 +89,14 @@ fun LoginScreen(navController: NavHostController) {
     var errorMessage by rememberSaveable { mutableStateOf<String?>(null) }//ERROR AL UNIRSE
 
 
-    //METODO PARA QUE NO SALTE EL LOGIN
+    //METODO PARA QUE SE SALTE EL LOGIN
     LaunchedEffect(Unit) {
         if (FirebaseManager.currentUser != null) {
             navigateToPrincipal(navController)//SI ESTA LOGUEADO SE VA A PRINCIPAL
         }
     }
+
+
     //PANTALLA DE GOOGLE
     // ESTE LAUNCHER ABRE LA PANTALLA DE GOOGLE Y RECIBE EL RESULTADO CUANDO EL USUARIO VUELVE.
     val googleLauncher = rememberLauncherForActivityResult(
@@ -224,7 +226,11 @@ fun LoginScreen(navController: NavHostController) {
                     )
                 }
 
-                //BOTON PARA LOGUEARSE
+
+
+
+
+                //BOTON PARA LOGUEARSE NORMAL
                 Button(
                     onClick = {
                         val validationMessage = validateCredentials(email, password, username, isRegisterMode) //VALIDA TODOS LOS CAMPOS Y SI ESTA O NO EN REGISTRO
@@ -271,6 +277,11 @@ fun LoginScreen(navController: NavHostController) {
                     }
                 }
 
+
+
+
+
+                //BOTON DE ABAJO DE GOOGLE
                 OutlinedButton(
                     onClick = {
                         if (googleSignInClient == null) {
@@ -352,7 +363,7 @@ private fun handleGoogleAccountResult(
 ) {
     val idToken = account?.idToken
     if (idToken.isNullOrBlank()) {
-        onError("No se recibio el token de Google. Revisa la configuracion de Firebase.")
+        onError("Fallo firebase auth con Google.")
         return
     }
     onSuccess(idToken)
@@ -385,7 +396,7 @@ private fun googleSignInErrorMessage(exception: ApiException): String {
     return when (exception.statusCode) {
         CommonStatusCodes.CANCELED -> "Se cancelo el acceso con Google."
         CommonStatusCodes.DEVELOPER_ERROR -> {
-            "Google Sign-In no esta bien configurado. Revisa SHA-1/SHA-256, proveedor Google y google-services.json."
+            "Google Sign-In no esta bien configurado"
         }
         else -> {
             val detail = exception.message
