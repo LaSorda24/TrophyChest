@@ -89,7 +89,7 @@ import com.gonzalez.trophychest.ui.theme.SubtleTrack
 import com.gonzalez.trophychest.ui.theme.VisibleOutline
 import kotlinx.coroutines.launch
 
-// PERFIL ENSENA DATOS DEL USUARIO, AMIGOS, JUEGOS GUARDADOS Y RESUMEN DE PROGRESO.
+// PERFIL ENSEÑA DATOS DEL USUARIO, AMIGOS, JUEGOS GUARDADOS Y RESUMEN DE PROGRESO.
 @Composable
 @OptIn(ExperimentalFoundationApi::class)
 fun PerfilScreen(navController: NavHostController) {
@@ -97,11 +97,11 @@ fun PerfilScreen(navController: NavHostController) {
     val pagerState = rememberPagerState(pageCount = { 2 })
     val coroutineScope = rememberCoroutineScope()
     val context = LocalContext.current
-    val clipboardManager = LocalClipboardManager.current
+    val clipboardManager = LocalClipboardManager.current//COPIAR EN PORTAPAELES
     val lifecycleOwner = LocalLifecycleOwner.current
     val currentUser = FirebaseManager.currentUser
     var profile by remember { mutableStateOf<User?>(null) }
-    var syncMessage by remember { mutableStateOf<String?>(null) }
+    var syncMessage by remember { mutableStateOf<String?>(null) }//AVISO MENSAJA COPIADO
     var friendConnections by remember(currentUser?.uid) { mutableStateOf(emptyList<FriendConnection>()) }
 
     // ESTOS DATOS SON CACHE LOCAL DE PLATAFORMAS; NO SE LLAMA A INTERNET CADA VEZ QUE ABRO PERFIL.
@@ -162,6 +162,8 @@ fun PerfilScreen(navController: NavHostController) {
         }
     }
 
+
+    //DISEÑO PAGINA
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -216,6 +218,8 @@ fun PerfilScreen(navController: NavHostController) {
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(displayName, color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+
+
             Text(
                 text = friendCode,
                 color = Color(0xFFE6E6E6),
@@ -244,7 +248,7 @@ fun PerfilScreen(navController: NavHostController) {
             Spacer(modifier = Modifier.height(12.dp))
             OutlinedButton(
                 onClick = {
-                    FirebaseManager.logout(context)
+                    FirebaseManager.logout()
                     navController.navigate(Screen.Login.route) {
                         popUpTo(Screen.Principal.route) { inclusive = true }
                         launchSingleTop = true
@@ -296,7 +300,7 @@ fun PerfilScreen(navController: NavHostController) {
             )
         }
 
-        HorizontalPager(
+        HorizontalPager( //DIVISION DE PANTALLAS
             state = pagerState,
             modifier = Modifier.fillMaxSize()
         ) { page ->
@@ -346,6 +350,8 @@ fun SeccionPlataformas() {
         ?: linkedPlayStationAccount?.displayName
         ?: "Sin vincular"
 
+
+    //DISEÑO SECCION TARJETA
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),

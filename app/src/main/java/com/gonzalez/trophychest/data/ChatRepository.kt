@@ -34,50 +34,6 @@ object ChatRepository {
         }
     }
 
-    suspend fun reserveUsername(usernameInput: String): UserProfile {
-        val currentUid = uid
-        val username = ChatValidation.requireValidUsername(usernameInput)
-        val userRef = db.collection("users").document(currentUid)
-        val usernameRef = db.collection("usernames").document(username)
-
-        db.runTransaction { transaction ->
-            val userSnapshot = transaction.get(userRef)
-            val currentUsername = userSnapshot.getString("usernameLower")
-            if (!currentUsername.isNullOrBlank() && currentUsername != username) {
-                throw IllegalStateException("Tu cuenta ya tiene un codigo de usuario.")
-            }
-
-            val usernameSnapshot = transaction.get(usernameRef)
-            val ownerUid = usernameSnapshot.getString("uid")
-            if (usernameSnapshot.exists() && ownerUid != currentUid) {
-                throw IllegalStateException("Ese codigo ya esta en uso.")
-            }
-
-            val reservation = mapOf(
-                "uid" to currentUid,
-                "createdAt" to FieldValue.serverTimestamp()
-            )
-            val profilePatch = mapOf(
-                "uid" to currentUid,
-                "username" to username,
-                "usernameLower" to username
-            )
-
-            transaction.set(usernameRef, reservation)
-            transaction.set(userRef, profilePatch, com.google.firebase.firestore.SetOptions.merge())
-            null
-        }.await()
-
-        return getUserProfile(currentUid) ?: UserProfile(uid = currentUid, username = username, usernameLower = username)
-    }
-
-    suspend fun findUserByUsername(usernameInput: String): UserProfile? {
-        val username = ChatValidation.requireValidUsername(usernameInput)
-        val reservation = db.collection("usernames").document(username).get().await()
-        val targetUid = reservation.getString("uid") ?: return null
-        return getUserProfile(targetUid)
-    }
-
     suspend fun findUserByFriendCode(friendCodeInput: String): UserProfile? {
         return UserRepository.findUserByFriendCode(friendCodeInput)
     }

@@ -83,10 +83,6 @@ object FirebaseManager {
         runCatching { auth().signOut() }
     }
 
-    fun logout(context: Context) {
-        SteamRepository.prepareForLogout(context)
-        logout()
-    }
 
     private fun auth(): FirebaseAuth {
         // ESTA FUNCION CENTRALIZA FIREBASEAUTH PARA CAPTURAR ERRORES DE CONFIGURACION.

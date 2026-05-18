@@ -22,10 +22,7 @@ object SteamRepository {
     private const val KEY_CACHED_DETAILS = "cached_details_v3"
     private const val KEY_CACHED_ACHIEVEMENTS_LEGACY = "cached_achievements"
     private const val KEY_CACHED_ACHIEVEMENTS = "cached_achievements_v2"
-    private const val KEY_CACHED_EXPLORE = "cached_explore"
-    private const val KEY_CACHED_CATEGORIES = "cached_categories"
     private const val KEY_LEGACY_STORAGE_CLEARED = "legacy_storage_cleared_v2"
-    private const val EXPLORE_CACHE_TTL_MILLIS = 6 * 60 * 60 * 1000L
 
     private val gson = Gson()
     private val legacyStorageKeys = listOf(
@@ -33,9 +30,7 @@ object SteamRepository {
         KEY_CACHED_GAMES,
         KEY_CACHED_DETAILS,
         KEY_CACHED_ACHIEVEMENTS_LEGACY,
-        KEY_CACHED_ACHIEVEMENTS,
-        KEY_CACHED_EXPLORE,
-        KEY_CACHED_CATEGORIES
+        KEY_CACHED_ACHIEVEMENTS
     )
 
     fun hasApiKey(): Boolean = BuildConfig.STEAM_API_KEY.isNotBlank()
@@ -56,10 +51,9 @@ object SteamRepository {
         return getCachedGames(context).firstOrNull { it.platformGameId == gameId }
     }
 
-    fun getCachedAchievements(context: Context, gameId: String): SteamAchievementBundle? {
-        return loadAchievementCache(context)[gameId]
-    }
 
+
+    //VINCULACION DE STEAM
     suspend fun importLibrary(context: Context, profileInput: String): SteamSyncResult = withContext(Dispatchers.IO) {
         // WITHCONTEXT(IO) MUEVE RED Y DISCO FUERA DEL HILO PRINCIPAL.
         if (!hasApiKey()) return@withContext SteamSyncResult.MissingApiKey
@@ -101,12 +95,12 @@ object SteamRepository {
         )
     }
 
+
+    //CACHE STEAM
     suspend fun getGameDetails(context: Context, gameId: String): Result<Juego> = withContext(Dispatchers.IO) {
         // PRIMERO BUSCO EN CACHE; SI NO HAY DATOS SUFICIENTES, PIDO DETALLES A STEAM STORE.
         val linkedGame = getCachedGame(context, gameId)
-        val exploreGame = getCachedExploreGame(context, gameId)
-        val categoryGame = getCachedCategoryGame(context, gameId)
-        val baseGame = linkedGame ?: exploreGame ?: categoryGame ?: gameId.toIntOrNull()?.let { appId ->
+        val baseGame = linkedGame ?: gameId.toIntOrNull()?.let { appId ->
             Juego(
                 platform = PlataformaJuego.STEAM,
                 platformGameId = appId.toString(),
@@ -127,7 +121,7 @@ object SteamRepository {
         runCatching {
             val response = RetrofitInstance.steamStoreApi.getAppDetails(gameId)
             val details = response[gameId]?.takeIf { it.success }?.data
-            if (details == null && linkedGame == null && exploreGame == null && categoryGame == null) {
+            if (details == null && linkedGame == null) {
                 throw IllegalStateException("Steam no ha devuelto detalles para este juego.")
             }
             val merged = baseGame.mergeWithDetails(details)
@@ -136,14 +130,6 @@ object SteamRepository {
                 replaceCachedGame(context, merged)
             }
             merged
-        }
-    }
-
-    suspend fun getSpanishStoreDescription(steamAppId: String): Result<String?> = withContext(Dispatchers.IO) {
-        getSpanishStoreDetails(steamAppId).map { details ->
-            details?.shortDescription
-                ?.trim()
-                ?.takeIf { it.isNotBlank() }
         }
     }
 
@@ -160,126 +146,12 @@ object SteamRepository {
         }
     }
 
-    suspend fun getCategoryGames(
-        context: Context,
-        categorySlug: String,
-        filters: SteamCategoryFilters
-    ): Result<SteamCategoryContent> = withContext(Dispatchers.IO) {
-        val category = SteamCategoryMapper.categoryForSlug(categorySlug)
-            ?: return@withContext Result.failure(IllegalArgumentException("Categoria de Steam no reconocida."))
-        val cached = loadCategoryCache(context)[category.slug]
-        val now = System.currentTimeMillis()
-        val cachedContent = cached?.content
-
-        if (cached != null && now - cached.fetchedAtMillis < EXPLORE_CACHE_TTL_MILLIS && cachedContent != null) {
-            return@withContext Result.success(cachedContent.withFilters(context, filters))
-        }
-
-        runCatching {
-            val response = RetrofitInstance.steamStoreApi.searchByTag(category.tagId)
-            val searchedGames = SteamCategoryMapper
-                .parseSearchResultsHtml(response.resultsHtml)
-                .take(30)
-            val detailsByAppId = fetchStoreDetails(context, searchedGames.map { it.platformGameId })
-            val enrichedGames = searchedGames
-                .mergeWithDetails(detailsByAppId)
-                .mergeWithCachedUserData(context)
-                .take(24)
-            val content = SteamCategoryContent(
-                category = category,
-                games = enrichedGames
-            )
-
-            saveCategoryCache(context, category.slug, content)
-            content.withFilters(context, filters)
-        }
-    }
-
-    suspend fun getExploreContent(context: Context): Result<SteamExploreContent> = withContext(Dispatchers.IO) {
-        val cached = loadExploreCache(context)
-        val now = System.currentTimeMillis()
-        if (cached != null && now - cached.fetchedAtMillis < EXPLORE_CACHE_TTL_MILLIS) {
-            return@withContext Result.success(cached.content)
-        }
-
-        runCatching {
-            val featured = RetrofitInstance.steamStoreApi.getFeaturedCategories()
-            val topSellers = featured.topSellers?.items.orEmpty()
-                .mapNotNull(SteamExploreMapper::featuredItemToJuego)
-                .distinctBy { it.platformGameId }
-                .take(12)
-            val newReleases = featured.newReleases?.items.orEmpty()
-                .mapNotNull(SteamExploreMapper::featuredItemToJuego)
-                .distinctBy { it.platformGameId }
-                .take(12)
-            val specials = featured.specials?.items.orEmpty()
-                .mapNotNull(SteamExploreMapper::featuredItemToJuego)
-                .distinctBy { it.platformGameId }
-                .take(12)
-
-            val candidateGames = (topSellers + newReleases + specials)
-                .distinctBy { it.platformGameId }
-                .take(28)
-            val ownedGames = getCachedGames(context)
-            val ownedDetailIds = ownedGames
-                .sortedByDescending { it.playtimeMinutes }
-                .take(12)
-                .map { it.platformGameId }
-            val detailsByAppId = fetchStoreDetails(
-                context = context,
-                appIds = candidateGames.map { it.platformGameId } + ownedDetailIds
-            )
-
-            val enrichedTopSellers = topSellers.mergeWithDetails(detailsByAppId).take(10)
-            val enrichedNewReleases = newReleases.mergeWithDetails(detailsByAppId).take(10)
-            val enrichedCandidates = candidateGames.mergeWithDetails(detailsByAppId)
-            val enrichedOwnedGames = ownedGames.mergeWithDetails(detailsByAppId)
-
-            val recommendationResult = buildRecommendations(
-                ownedGames = enrichedOwnedGames,
-                candidates = enrichedCandidates,
-                detailsByAppId = detailsByAppId,
-                fallback = enrichedTopSellers
-            )
-
-            val reviewSummaries = fetchReviewSummaries(enrichedCandidates.map { it.platformGameId })
-            val qualityGames = SteamExploreMapper
-                .sortByQuality(enrichedCandidates, reviewSummaries, limit = 5)
-                .ifEmpty { enrichedTopSellers.take(5) }
-
-            val content = SteamExploreContent(
-                topSellers = enrichedTopSellers.map { game ->
-                    SteamExploreGame(game = game, subtitle = game.shortDescription)
-                },
-                recommended = recommendationResult.games.map { game ->
-                    SteamExploreGame(
-                        game = game,
-                        subtitle = SteamExploreMapper.recommendationSubtitle(game, detailsByAppId)
-                    )
-                },
-                newReleases = enrichedNewReleases.map { game ->
-                    SteamExploreGame(game = game, subtitle = game.releaseDate)
-                },
-                qualityTime = qualityGames.map { game ->
-                    SteamExploreGame(
-                        game = game,
-                        subtitle = game.shortDescription,
-                        badgeText = SteamExploreMapper.reviewBadge(reviewSummaries[game.platformGameId])
-                    )
-                },
-                recommendationMessage = recommendationResult.message
-            )
-
-            saveExploreCache(context, content)
-            content
-        }
-    }
-
     suspend fun getGamesForHome(context: Context): Result<List<Juego>> = withContext(Dispatchers.IO) {
         val cached = getCachedGames(context).sortedForHome()
         Result.success(cached)
     }
 
+    //JUEGOS PRINCIPAL
     suspend fun getGamesWithAchievementSummaries(context: Context): Result<List<Juego>> = withContext(Dispatchers.IO) {
         // ESTA FUNCION PREPARA LA LISTA DE JUEGOS QUE APARECE EN LA PANTALLA DE TROFEOS.
         val linkedAccount = getLinkedAccount(context)
@@ -397,9 +269,6 @@ object SteamRepository {
         return "Configura STEAM_API_KEY en gradle.properties o local.properties para activar la sincronizacion con Steam."
     }
 
-    internal fun prepareForLogout(context: Context) {
-        prefs(context)
-    }
 
     private suspend fun resolveProfileInput(profileInput: String): Result<SteamLinkedAccount> = withContext(Dispatchers.IO) {
         // EL USUARIO PUEDE PEGAR STEAMID64 O URL; AQUI LO CONVIERTO A STEAMID REAL.
@@ -669,134 +538,6 @@ object SteamRepository {
         )
     }
 
-    private fun List<Juego>.mergeWithDetails(detailsByAppId: Map<String, SteamStoreAppDetails>): List<Juego> {
-        return map { game -> game.mergeWithDetails(detailsByAppId[game.platformGameId]) }
-    }
-
-    private fun List<Juego>.mergeWithCachedUserData(context: Context): List<Juego> {
-        val ownedGamesById = getCachedGames(context).associateBy { it.platformGameId }
-        val achievementSummariesById = loadAchievementCache(context).mapValues { (_, bundle) -> bundle.summary }
-        return map { game ->
-            val ownedGame = ownedGamesById[game.platformGameId]
-            game.copy(
-                playtimeMinutes = ownedGame?.playtimeMinutes ?: game.playtimeMinutes,
-                lastPlayedEpochSeconds = ownedGame?.lastPlayedEpochSeconds ?: game.lastPlayedEpochSeconds,
-                achievementSummary = ownedGame?.achievementSummary
-                    ?: achievementSummariesById[game.platformGameId]
-                    ?: game.achievementSummary
-            )
-        }
-    }
-
-    private fun SteamCategoryContent.withFilters(
-        context: Context,
-        filters: SteamCategoryFilters
-    ): SteamCategoryContent {
-        val detailsByAppId = loadDetailsCache(context)
-        return copy(
-            games = SteamCategoryMapper.applyFilters(
-                games = games.mergeWithCachedUserData(context),
-                detailsByAppId = detailsByAppId,
-                filters = filters
-            )
-        )
-    }
-
-    private data class RecommendationResult(
-        val games: List<Juego>,
-        val message: String? = null
-    )
-
-    private fun buildRecommendations(
-        ownedGames: List<Juego>,
-        candidates: List<Juego>,
-        detailsByAppId: Map<String, SteamStoreAppDetails>,
-        fallback: List<Juego>
-    ): RecommendationResult {
-        if (ownedGames.isEmpty()) {
-            return RecommendationResult(
-                games = fallback.take(4),
-                message = "Vincula tu cuenta de Steam para recomendaciones personalizadas. Mientras tanto, te mostramos tendencias."
-            )
-        }
-
-        val recommended = SteamExploreMapper.recommendFromLibrary(
-            ownedGames = ownedGames,
-            candidates = candidates,
-            detailsByGameId = detailsByAppId,
-            limit = 4
-        )
-
-        return if (recommended.isNotEmpty()) {
-            RecommendationResult(games = recommended)
-        } else {
-            RecommendationResult(
-                games = fallback.filterNot { candidate ->
-                    ownedGames.any { it.platformGameId == candidate.platformGameId }
-                }.take(4),
-                message = "No hemos encontrado coincidencias claras con tu biblioteca. Te mostramos exitos actuales."
-            )
-        }
-    }
-
-    private suspend fun fetchStoreDetails(
-        context: Context,
-        appIds: List<String>
-    ): Map<String, SteamStoreAppDetails> = coroutineScope {
-        // COROUTINESCOPE + ASYNC PERMITE PEDIR VARIOS DETALLES EN PARALELO SIN BLOQUEAR LA UI.
-        val cachedDetails = loadDetailsCache(context)
-        val missingIds = appIds
-            .distinct()
-            .filter { it.toIntOrNull() != null }
-            .filterNot { cachedDetails.containsKey(it) }
-
-        val fetchedDetails = missingIds
-            .chunked(20)
-            .map { chunk ->
-                async {
-                    runCatching {
-                        RetrofitInstance.steamStoreApi
-                            .getAppDetails(chunk.joinToString(","))
-                            .mapNotNull { (appId, envelope) ->
-                                envelope.takeIf { it.success }?.data?.let { details -> appId to details }
-                            }
-                    }.getOrDefault(emptyList())
-                }
-            }
-            .awaitAll()
-            .flatten()
-            .toMap()
-
-        fetchedDetails.forEach { (appId, details) ->
-            saveDetailsCache(context, appId, details)
-        }
-
-        cachedDetails + fetchedDetails
-    }
-
-    private suspend fun fetchReviewSummaries(appIds: List<String>): Map<String, SteamReviewQuerySummary> = coroutineScope {
-        val semaphore = Semaphore(6)
-        appIds
-            .distinct()
-            .filter { it.toIntOrNull() != null }
-            .take(24)
-            .map { appId ->
-                async {
-                    semaphore.withPermit {
-                        val summary = runCatching {
-                            RetrofitInstance.steamStoreApi
-                                .getAppReviewSummary(appId.toInt())
-                                .querySummary
-                        }.getOrNull()
-                        appId to summary
-                    }
-                }
-            }
-            .awaitAll()
-            .mapNotNull { (appId, summary) -> summary?.let { appId to it } }
-            .toMap()
-    }
-
     internal fun scopedPreferenceKey(baseKey: String, uid: String?): String? {
         val normalizedUid = uid?.takeIf { it.isNotBlank() } ?: return null
         return "$baseKey::$normalizedUid"
@@ -883,61 +624,6 @@ object SteamRepository {
         val json = readScopedJson(context, KEY_CACHED_ACHIEVEMENTS) ?: return emptyMap()
         val type = object : TypeToken<Map<String, SteamAchievementBundle>>() {}.type
         return runCatching { gson.fromJson<Map<String, SteamAchievementBundle>>(json, type) }.getOrDefault(emptyMap())
-    }
-
-    private fun saveExploreCache(context: Context, content: SteamExploreContent) {
-        val currentUid = currentUserUid() ?: return
-        val entry = SteamExploreCacheEntry(
-            fetchedAtMillis = System.currentTimeMillis(),
-            content = content
-        )
-        writeScopedJson(context, currentUid, KEY_CACHED_EXPLORE, gson.toJson(entry))
-    }
-
-    private fun loadExploreCache(context: Context): SteamExploreCacheEntry? {
-        val json = readScopedJson(context, KEY_CACHED_EXPLORE) ?: return null
-        return runCatching { gson.fromJson(json, SteamExploreCacheEntry::class.java) }.getOrNull()
-    }
-
-    private fun saveCategoryCache(context: Context, slug: String, content: SteamCategoryContent) {
-        val currentUid = currentUserUid() ?: return
-        val updated = loadCategoryCache(context).toMutableMap().apply {
-            put(
-                slug,
-                SteamCategoryCacheEntry(
-                    fetchedAtMillis = System.currentTimeMillis(),
-                    content = content
-                )
-            )
-        }
-        writeScopedJson(context, currentUid, KEY_CACHED_CATEGORIES, gson.toJson(updated))
-    }
-
-    private fun loadCategoryCache(context: Context): Map<String, SteamCategoryCacheEntry> {
-        val json = readScopedJson(context, KEY_CACHED_CATEGORIES) ?: return emptyMap()
-        val type = object : TypeToken<Map<String, SteamCategoryCacheEntry>>() {}.type
-        return runCatching { gson.fromJson<Map<String, SteamCategoryCacheEntry>>(json, type) }.getOrDefault(emptyMap())
-    }
-
-    private fun getCachedExploreGame(context: Context, gameId: String): Juego? {
-        val content = loadExploreCache(context)?.content ?: return null
-        return listOf(
-            content.topSellers,
-            content.recommended,
-            content.newReleases,
-            content.qualityTime
-        )
-            .flatten()
-            .map { it.game }
-            .firstOrNull { it.platformGameId == gameId }
-    }
-
-    private fun getCachedCategoryGame(context: Context, gameId: String): Juego? {
-        return loadCategoryCache(context)
-            .values
-            .asSequence()
-            .flatMap { it.content.games.asSequence() }
-            .firstOrNull { it.platformGameId == gameId }
     }
 
     private fun errorMessageFor(throwable: Throwable): String {

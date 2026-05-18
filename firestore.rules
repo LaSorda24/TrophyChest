@@ -12,14 +12,16 @@ service cloud.firestore {
       return signedIn() && request.auth.uid == uid;
     }
 
+    //CONEXION QUE SOLO PUEDEN VER MIEMBROS
     function isConnectionMember() {
       return signedIn() && request.auth.uid in resource.data.members;
     }
-
+    //LO MISMO PERO NUEVO
     function isNewConnectionMember() {
       return signedIn() && request.auth.uid in request.resource.data.members;
     }
 
+    //COMPRUEBA QUE L UIS APARECE EN LA IDA DE LA CONEXION
     function isConnectionIdParticipant(connectionId) {
       return signedIn() && connectionId.split("_").hasAny([request.auth.uid]);
     }
@@ -30,7 +32,7 @@ service cloud.firestore {
     }
 
     // CADA USUARIO SOLO PUEDE MODIFICAR SU PROPIO PERFIL PUBLICO.
-    match /users/{uid} {
+    match /users/{uid} { //SE APLICAN EN...
       allow read: if signedIn();
       allow create: if isSelf(uid)
         && request.resource.data.uid == uid;
@@ -41,6 +43,7 @@ service cloud.firestore {
           request.resource.data.friendCode == resource.data.friendCode
           || (!resource.data.keys().hasAny(["friendCode"]) && request.resource.data.friendCode is string)
         )
+
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
           "username",
           "usernameLower",

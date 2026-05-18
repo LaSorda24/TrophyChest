@@ -1,7 +1,6 @@
 package com.gonzalez.trophychest.data
 
 import retrofit2.http.GET
-import retrofit2.http.Path
 import retrofit2.http.Query
 
 // ESTE INTERFACE NO IMPLEMENTA LOGICA; SOLO DECLARA LAS RUTAS HTTP QUE RETROFIT SABE LLAMAR.
@@ -59,31 +58,4 @@ interface SteamStoreApiService {
         @Query("l") language: String = "spanish",
         @Query("cc") countryCode: String = "ES"
     ): Map<String, SteamStoreAppDetailsEnvelope>
-
-    @GET("api/featuredcategories")
-    suspend fun getFeaturedCategories(
-        @Query("cc") countryCode: String = "ES",
-        @Query("l") language: String = "spanish"
-    ): SteamFeaturedCategoriesResponse
-
-    @GET("search/results/")
-    suspend fun searchByTag(
-        @Query("tags") tagId: Int,
-        @Query("category1") category: Int = 998,
-        @Query("filter") filter: String = "topsellers",
-        @Query("start") start: Int = 0,
-        @Query("count") count: Int = 30,
-        @Query("infinite") infinite: Int = 1,
-        @Query("cc") countryCode: String = "ES",
-        @Query("l") language: String = "spanish"
-    ): SteamSearchResultsResponse
-
-    @GET("appreviews/{appId}")
-    suspend fun getAppReviewSummary(
-        @Path("appId") appId: Int,
-        @Query("json") json: Int = 1,
-        @Query("filter") filter: String = "summary",
-        @Query("language") language: String = "all",
-        @Query("purchase_type") purchaseType: String = "all"
-    ): SteamAppReviewsResponse
 }

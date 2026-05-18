@@ -428,41 +428,6 @@ private fun ProfileAvatar(profile: UserProfile?, size: Int) {
 }
 
 @Composable
-private fun UsernameDialog(onSave: (String) -> Unit) {
-    var username by remember { mutableStateOf("") }
-    val validationError = ChatValidation.usernameError(username)
-
-    AlertDialog(
-        onDismissRequest = {},
-        title = { Text("Crea tu codigo de usuario") },
-        text = {
-            Column {
-                Text("Tus amigos lo usaran para encontrarte en TrophyChest.")
-                Spacer(modifier = Modifier.height(12.dp))
-                OutlinedTextField(
-                    value = username,
-                    onValueChange = { username = it },
-                    singleLine = true,
-                    label = { Text("Codigo") },
-                    isError = username.isNotBlank() && validationError != null
-                )
-                if (username.isNotBlank() && validationError != null) {
-                    Text(validationError, color = MaterialTheme.colorScheme.error, fontSize = 12.sp)
-                }
-            }
-        },
-        confirmButton = {
-            Button(
-                onClick = { onSave(username) },
-                enabled = validationError == null
-            ) {
-                Text("Guardar")
-            }
-        }
-    )
-}
-
-@Composable
 private fun AddFriendDialog(
     onDismiss: () -> Unit,
     onSendRequest: (String) -> Unit

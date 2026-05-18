@@ -46,11 +46,6 @@ object UserRepository {
         awaitClose { registration.remove() }
     }
 
-    suspend fun getCurrentUser(): User? {
-        val uid = FirebaseManager.currentUser?.uid ?: return null
-        return getUser(uid)
-    }
-
     suspend fun getUser(uid: String): User? {
         if (uid.isBlank()) return null
         val snapshot = db.collection("users").document(uid).get().await()
@@ -61,6 +56,7 @@ object UserRepository {
         return getUser(uid)?.toUserProfile()
     }
 
+    //FUNCION JACOB completeExistingUserDocument.
     suspend fun ensureUserDocument(user: FirebaseUser): User {
         // ESTA FUNCION EVITA QUE UN LOGIN ENTRE SIN PERFIL PUBLICO CREADO EN FIRESTORE.
         getUser(user.uid)?.let { existing ->
@@ -97,6 +93,7 @@ object UserRepository {
         return createUserDocument(user, "${base}_${user.uid.takeLast(6).lowercase(Locale.ROOT)}")
     }
 
+    //FUNCION JACOB
     private suspend fun completeExistingUserDocument(user: FirebaseUser, usernameInput: String): User {
         // COMPLETA PERFILES ANTIGUOS QUE NO TENIAN USERNAME O CODIGO DE AMIGO.
         val username = ChatValidation.requireValidUsername(usernameInput)

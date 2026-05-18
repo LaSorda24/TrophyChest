@@ -43,9 +43,7 @@ class SteamRepositoryStorageTest {
                 "cached_games::player_a",
                 "cached_details_v3::player_a",
                 "cached_achievements::player_a",
-                "cached_achievements_v2::player_a",
-                "cached_explore::player_a",
-                "cached_categories::player_a"
+                "cached_achievements_v2::player_a"
             ),
             keys
         )
