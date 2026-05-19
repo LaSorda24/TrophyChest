@@ -12,7 +12,7 @@ object ReleaseCalendarRepository {
     private const val KEY_CACHED_UPCOMING_RELEASES = "cached_upcoming_releases"
     private const val RELEASE_CACHE_TTL_MILLIS = 6 * 60 * 60 * 1000L
     private const val DEFAULT_DAYS = 60
-    private const val DEFAULT_LIMIT = 60
+    private const val DEFAULT_LIMIT = 150
     private val gson = Gson()
 
     fun hasEndpoint(): Boolean = BuildConfig.RELEASE_CALENDAR_BASE_URL.isNotBlank()

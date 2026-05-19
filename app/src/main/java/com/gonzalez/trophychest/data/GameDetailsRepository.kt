@@ -32,6 +32,7 @@ object GameDetailsRepository {
         }
     }
 
+    //PARA GAMEPASS
     private fun unsupportedPlatformError(platform: PlataformaJuego): IllegalArgumentException {
         val message = if (platform == PlataformaJuego.GAME_PASS) {
             GAME_PASS_UNAVAILABLE_MESSAGE
